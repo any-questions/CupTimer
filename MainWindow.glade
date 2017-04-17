@@ -82,8 +82,8 @@
               <object class="GtkImage" id="pult1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="stock">gtk-cancel</property>
-                <property name="icon_size">6</property>
+                <property name="stock">gtk-dialog-error</property>
+                <property name="icon_size">3</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -95,8 +95,8 @@
               <object class="GtkImage" id="pult2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="stock">gtk-cancel</property>
-                <property name="icon_size">6</property>
+                <property name="stock">gtk-dialog-error</property>
+                <property name="icon_size">3</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -108,8 +108,8 @@
               <object class="GtkImage" id="pult3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="stock">gtk-cancel</property>
-                <property name="icon_size">6</property>
+                <property name="stock">gtk-dialog-error</property>
+                <property name="icon_size">3</property>
               </object>
               <packing>
                 <property name="expand">True</property>
