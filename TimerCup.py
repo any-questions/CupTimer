@@ -1,5 +1,6 @@
 import time         # либа для таймеров
 import threading    # либа для тредов
+import queue        # либа для очередей
 import gi           # либа для gui
 import serial       # либа для uart
 import simpleaudio as sa  # для аудио
@@ -58,11 +59,11 @@ class TimerClass(threading.Thread): # класс для таймера
         self.eventShortBeep = threading.Event()
         timeString = pattern.format(self.currentTime[0], self.currentTime[1])  # записываем время в паттерн
         if (self.timer == 'main'):  # в зависимости от того, с каким таймером работаем (тут главный таймер)
-            win.mainTimerText.set_markup(timeString)  # записываем паттерн в ярлык
+            win.mainTimerText.set_text(timeString)  # записываем паттерн в ярлык
         elif (self.timer == 'red'):  # (красный таймер)
-            win.redTimerText.set_markup(timeString)
+            win.redTimerText.set_text(timeString)
         elif (self.timer == 'green'):  # (зеленый таймер)
-            win.greenTimerText.set_markup(timeString)
+            win.greenTimerText.set_text(timeString)
         threading.Thread.__init__(self)  # инициализация функции как треда
 
     def update(self):   # функция обновляющая текст таймера
@@ -77,12 +78,12 @@ class TimerClass(threading.Thread): # класс для таймера
             timeString = pattern.format(self.currentTime[0], self.currentTime[1])   # записываем время в паттерн
             if(self.timer=='main'): # в зависимости от того, с каким таймером работаем (тут главный таймер)
                 eventHighBeep.set()
-                win.mainTimerText.set_markup(timeString)  # записываем паттерн в ярлык
+                win.mainTimerText.set_text(timeString)  # записываем паттерн в ярлык
                 win.pult1.set_from_icon_name("gtk-yes", Gtk.IconSize.DIALOG)
             elif(self.timer=='red'):    # (красный таймер)
-                win.redTimerText.set_markup(timeString)
+                win.redTimerText.set_text(timeString)
             elif(self.timer=='green'):  # (зеленый таймер)
-                win.greenTimerText.set_markup(timeString)
+                win.greenTimerText.set_text(timeString)
 
             print(self.timer + " " + str(self.currentTime[0]) + " m " + str(self.currentTime[1]) + " s ")   # дебаговый вывод
             time.sleep(1)   #останавливаем тред на секунду
