@@ -23,7 +23,7 @@
                 <property name="label" translatable="yes">label</property>
                 <property name="justify">center</property>
                 <attributes>
-                  <attribute name="foreground" value="#a4a400000000"/>
+                  <attribute name="foreground" value="#cccc00000000"/>
                 </attributes>
               </object>
               <packing>

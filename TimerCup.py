@@ -30,13 +30,13 @@ class MainWindow():
         self.pult1 = builder.get_object("pult1")    # метки онлайна для каждого пульта
         self.pult2 = builder.get_object("pult2")
         self.pult3 = builder.get_object("pult3")
-        # self.window.fullscreen()    # растягиваем окно на весь экран
+        self.window.fullscreen()    # растягиваем окно на весь экран
     def resize(self,window):   # функция изменения размера шрифтов при изменении размеров экрана
         height = self.window.get_size()[1] # получаем значение высоты
         width = self.window.get_size()[0]  # и ширины
-        self.greenTimerText.modify_font(Pango.FontDescription(str(height / 10)))  # изменяем размеры шрифтов
-        self.redTimerText.modify_font(Pango.FontDescription(str(height / 10)))
-        self.mainTimerText.modify_font(Pango.FontDescription(str(height / 5)))
+        self.greenTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 10)))  # изменяем размеры шрифтов
+        self.redTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 10)))
+        self.mainTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 5)))
 
     def close_window(self,a,b): # при закрытии окна останавливаем таймеры и закрываем окно
         mainTimer.isRunning = False
@@ -137,19 +137,19 @@ class PlayMusic(threading.Thread):
         while(self.isRunning == True):
             if(eventLongBeep.isSet()):
                 eventLongBeep.clear()
-                print("Long Beep")
+                print("Long Beep ")
             elif (eventShortBeep.isSet()):
                 eventShortBeep.clear()
-                print("Short Beep")
+                print("Short Beep ")
             elif (eventHighBeep.isSet()):
                 eventHighBeep.clear()
-                print("High Beep")
+                print("High Beep ")
             elif (eventLowBeep.isSet()):
                 eventLowBeep.clear()
-                print("Low Beep")
+                print("Low Beep ")
             elif (eventAirHorn.isSet()):
                 eventAirHorn.clear()
-                print("Air Horn")
+                print("Air Horn ")
     # def horn(self):
     #     self.horn.play()
     # def short_beep(self):
