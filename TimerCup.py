@@ -9,46 +9,60 @@ from gi.repository import Gtk, Pango
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
-# wave_obj = simpleaudio.WaveObject.from_wave_file("sounds/airhorn.wav")
-# play_obj = wave_obj.play()
-# play_obj.wait_done()
 eventShortBeep = threading.Event()
 eventLongBeep = threading.Event()
 eventHighBeep = threading.Event()
 eventLowBeep = threading.Event()
 eventAirHorn = threading.Event()
 
-class MainWindow():
+class MainWindow(): # класс основного окна с тремя таймерами
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
     def __init__(self):
         builder = Gtk.Builder()
         builder.add_from_file("MainWindow.glade")   # подгружаем интерфейс из файла
-        self.window = builder.get_object("window1") # вытаскиваем нужные элементы (само окно)
+        self.mainWindow = builder.get_object("mainWindow") # вытаскиваем нужные элементы (само окно)
+        self.countdownWindow = builder.get_object("countdownWindow")
         self.redTimerText = builder.get_object("redTimer")  # красный таймер
         self.greenTimerText = builder.get_object("greenTimer")  # зеленый таймер
         self.mainTimerText = builder.get_object("mainTimer")    # главный таймер
         self.pult1 = builder.get_object("pult1")    # метки онлайна для каждого пульта
         self.pult2 = builder.get_object("pult2")
         self.pult3 = builder.get_object("pult3")
-        self.window.fullscreen()    # растягиваем окно на весь экран
-    def resize(self,window):   # функция изменения размера шрифтов при изменении размеров экрана
-        height = self.window.get_size()[1] # получаем значение высоты
-        width = self.window.get_size()[0]  # и ширины
-        self.greenTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 10)))  # изменяем размеры шрифтов
-        self.redTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 10)))
-        self.mainTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height / 5)))
+        self.mainWindow.fullscreen()    # растягиваем окно на весь экран
 
-    def close_window(self,a,b): # при закрытии окна останавливаем таймеры и закрываем окно
-        mainTimer.isRunning = False
-        redTimer.isRunning = False
-        greenTimer.isRunning = False
-        player.isRunning = False
-        eventShortBeep.clear()
-        eventLongBeep.clear()
-        eventHighBeep.clear()
-        eventLowBeep.clear()
-        eventAirHorn.clear()
-        Gtk.main_quit()
+    def Resize(self, window):   # функция изменения размера шрифтов при изменении размеров экрана
+        height = self.mainWindow.get_size()[1] # получаем значение высоты
+        width = self.mainWindow.get_size()[0]  # и ширины
+        self.greenTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height/10)))  # изменяем размеры шрифтов
+        self.redTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height/10)))
+        self.mainTimerText.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height/5)))
+
+    # def SwitchWindow(self): # функция переключения между окнами
+    #     self.mainWindow.iconify()   # сворачиваем главное окно
+    #     self.mainWindow.close()  # закрываем главное окно
+    #     time.sleep(0.01)
+    #     self.countdownWindow.show()
+    #     self.countdownWindow.fullscreen()
+
+class CountDownWindow():
+    def __init__(self):
+        builder = Gtk.Builder()
+        builder.add_from_file("CountDownWindow.glade")   # подгружаем интерфейс из файла
+        self.countDownWindow = builder.get_object("countDownWindow")
+        self.countDownLabel = builder.get_object("countDownLabel")
+        self.countDownWindow.fullscreen()
+    def Resize(self,window):
+        height = self.countDownWindow.get_size()[1]
+        self.countDownLabel.modify_font(Pango.FontDescription('Ds-Digital Italic '+str(height/5)))
+
+def SwitchWindow():
+    if(win.mainWindow.is_active()):
+        # win.mainWindow.iconify()
+        win.mainWindow.close()
+        time.sleep(0.01)
+        countDown.countDownWindow.show_all()
+        countDown.countDownWindow.fullscreen()
+
 
 class TimerClass(threading.Thread): # класс для таймера
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
@@ -74,6 +88,9 @@ class TimerClass(threading.Thread): # класс для таймера
                 self.currentTime[0] -= 1    # вычитаем минуту
             if(self.currentTime[1] == 0 and self.currentTime[0] == 0):  # если дотикали до 0 - останавливаем таймер
                 self.isRunning = False
+                if(self.timer == 'main'):
+                    eventLowBeep.set()
+                    SwitchWindow()
 
             timeString = pattern.format(self.currentTime[0], self.currentTime[1])   # записываем время в паттерн
             if(self.timer=='main'): # в зависимости от того, с каким таймером работаем (тут главный таймер)
@@ -87,7 +104,7 @@ class TimerClass(threading.Thread): # класс для таймера
 
             print(self.timer + " " + str(self.currentTime[0]) + " m " + str(self.currentTime[1]) + " s ")   # дебаговый вывод
             time.sleep(1)   #останавливаем тред на секунду
-        time.sleep(2)
+
     def __del__(self):
         self.isRunning = False
 
@@ -110,14 +127,10 @@ class TimerClass(threading.Thread): # класс для таймера
 
     def pause(self):    # функция постановки таймера на паузу
         self.isRunning = False
+
     def resume(self):   # снятие с паузы
         self.isRunning = True
 
-# class PultHandler():    # класс обработки сообщений с пульта
-#     def __init__(self):
-#         self.port = serial.Serial("/dev/ttyUSB0", baudrate=115200)  # открытие порта
-#     def __del__(self):
-#         self.port.close()   # закрытие порта
 class PlayMusic(threading.Thread):
     def __init__(self):
         self.short_beep = sa.WaveObject.from_wave_file("sounds/short_beep.wav")
@@ -147,6 +160,7 @@ class PlayMusic(threading.Thread):
             elif (eventLowBeep.isSet()):
                 eventLowBeep.clear()
                 print("Low Beep ")
+                # win.SwitchWindow()
             elif (eventAirHorn.isSet()):
                 eventAirHorn.clear()
                 print("Air Horn ")
@@ -161,22 +175,42 @@ class PlayMusic(threading.Thread):
     # def high_beep(self):
     #     self.high_beep.play()
 
+
+def CloseProgram(a, b): # при закрытии программы останавливаем таймеры и закрываем окно
+    mainTimer.isRunning = False
+    redTimer.isRunning = False
+    greenTimer.isRunning = False
+    player.isRunning = False
+    eventShortBeep.clear()
+    eventLongBeep.clear()
+    eventHighBeep.clear()
+    eventLowBeep.clear()
+    eventAirHorn.clear()
+    print("WINDOW CLOSED")
+    # Gtk.main_quit()
+
 def GtkRun():
     Gtk.main()
 
+
+# class PultHandler():    # класс обработки сообщений с пульта
+#     def __init__(self):
+#         self.port = serial.Serial("/dev/ttyUSB0", baudrate=115200)  # открытие порта
+#     def __del__(self):
+#         self.port.close()   # закрытие порта
+
 win = MainWindow()  # создаем объект класса главного окна
+countDown = CountDownWindow()   # создаем объект  класса окна обратного отсчета
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 player.start()
-win.window.connect("check-resize", win.resize)  # привазываем ивенты к обработчикам: изменение размера
-win.window.connect("delete-event", win.close_window)    # и закрытие окна
+win.mainWindow.connect("check-resize", win.Resize)  # привазываем ивенты к обработчикам: изменение размера
+win.mainWindow.connect("delete-event", CloseProgram)    # и закрытие окна
 
-win.window.show_all()   # показать элементы оформления
+win.mainWindow.show_all()   # показать элементы оформления
 
-mainTimer = TimerClass(0, 10, 'main',win)   # создаем таймеры (указываем время и какой таймер, тут главный)
-redTimer = TimerClass(0, 11, 'red', win)  # тут красный
-greenTimer = TimerClass(0, 11, 'green', win)  # тут зеленый
-
-
+redTimer = TimerClass(0, 5, 'red', win)  # тут красный
+greenTimer = TimerClass(0, 5, 'green', win)  # тут зеленый
+mainTimer = TimerClass(0, 4, 'main',win)   # создаем таймеры (указываем время и какой таймер, тут главный)
 
 mainTimer.start()
 # time.sleep(0.5)
@@ -185,4 +219,3 @@ redTimer.start()
 greenTimer.start()
 
 t1 = threading.Thread(target=GtkRun())  # запускаем Gtk
-
