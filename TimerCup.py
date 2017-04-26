@@ -78,7 +78,7 @@ class TimerClass(threading.Thread): # класс для таймера
             win.redTimerText.set_text(timeString)
         elif (self.timer == 'green'):  # (зеленый таймер)
             win.greenTimerText.set_text(timeString)
-        threading.Thread.__init__(self)  # инициализация функции как треда
+        threading.Thread.__init__(self)  # наследование функций треда
 
     def update(self):   # функция обновляющая текст таймера
         while(self.isRunning):  #работает только когда таймер запущен
@@ -138,7 +138,7 @@ class PlayMusic(threading.Thread):
         self.low_beep = sa.WaveObject.from_wave_file("sounds/low_beep.wav")
         self.high_beep = sa.WaveObject.from_wave_file("sounds/high_beep.wav")
         self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self) # наследование функций треда
     def __del__(self):
         self.isRunning = False
 
