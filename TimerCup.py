@@ -4,8 +4,9 @@ import threading    # либа для тредов
 import gi           # либа для gui
 import serial       # либа для uart
 import simpleaudio as sa  # для аудио
+import cairo
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, Glib
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
