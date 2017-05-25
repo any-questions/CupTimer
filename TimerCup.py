@@ -28,7 +28,7 @@ class MainWindow(): # класс основного окна с тремя та�
         self.pult1 = builder.get_object("pult1")    # метки онлайна для каждого пульта
         self.pult2 = builder.get_object("pult2")
         self.pult3 = builder.get_object("pult3")
-        self.mainWindow.fullscreen()    # растягиваем окно на весь экран
+        # self.mainWindow.fullscreen()    # растягиваем окно на весь экран
 
     def Resize(self, window):   # функция изменения размера шрифтов при изменении размеров экрана
         height = self.mainWindow.get_size()[1] # получаем значение высоты
@@ -50,7 +50,7 @@ class CountDownWindow():    # класс вспомогательного окн
         builder.add_from_file("CountDownWindow.glade")   # подгружаем интерфейс из файла
         self.countDownWindow = builder.get_object("countDownWindow")    # извлекаем само окно
         self.countDownLabel = builder.get_object("countDownLabel")  # извлекаем label куда будем выводить таймер
-        self.countDownWindow.fullscreen()   # растягиваем окно на весь экран
+        # self.countDownWindow.fullscreen()   # растягиваем окно на весь экран
 
     def Resize(self,window):    # функция для изменения размера шрифта при изменении размера окна
         height = self.countDownWindow.get_size()[1] # получаем высоту окна
@@ -105,7 +105,7 @@ class TimerClass(threading.Thread): # класс для таймера
                 elif(self.timer=='green'):  # (зеленый таймер)
                     win.greenTimerText.set_text(timeString)
 
-                print(self.timer + " " + str(self.currentTime[0]) + " m " + str(self.currentTime[1]) + " s ")   # дебаговый вывод
+                # print(self.timer + " " + str(self.currentTime[0]) + " m " + str(self.currentTime[1]) + " s ")   # дебаговый вывод
                 time.sleep(1)   #останавливаем тред на секунду
 
     def __del__(self):  # деструктор класса - останавливает таймер
@@ -154,19 +154,19 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         while(self.isRunning == True):  # работает пока поднят флаг
             if(eventLongBeep.isSet()):  # проверяется установлено ли событие, длинный писк
                 eventLongBeep.clear()   # если да - сбрасываем событие
-                print("Long Beep ") # пищим нужным тоном
+                # print("Long Beep ") # пищим нужным тоном
             elif (eventShortBeep.isSet()):  # аналогично, короткий писк
                 eventShortBeep.clear()
-                print("Short Beep ")
+                # print("Short Beep ")
             elif (eventHighBeep.isSet()):   # высокий писк
                 eventHighBeep.clear()
-                print("High Beep ")
+                # print("High Beep ")
             elif (eventLowBeep.isSet()):    # низкий писк
                 eventLowBeep.clear()
-                print("Low Beep ")
+                # print("Low Beep ")
             elif (eventAirHorn.isSet()):    # стартовый горн
                 eventAirHorn.clear()
-                print("Air Horn ")
+                # print("Air Horn ")
     # def horn(self):   #функции для проигрывания мелодий
     #     self.horn.play()
     # def short_beep(self):
@@ -198,11 +198,33 @@ class GtkRunner(threading.Thread):
     def run(self):
         Gtk.main()
 
-# class PultHandler():    # класс обработки сообщений с пульта
-#     def __init__(self):
-#         self.port = serial.Serial("/dev/ttyUSB0", baudrate=115200)  # открытие порта
-#     def __del__(self):
-#         self.port.close()   # закрытие порта
+class PultHandler(threading.Thread):    # класс обработки сообщений с пульта
+    def __init__(self):
+        self.port = serial.Serial(  #открываем порт
+            port='/dev/ttyAMA0',    # параметры порта
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS)  # открытие порта
+        threading.Thread.__init__(self,daemon=True)  # наследование функций треда
+    def __del__(self):
+        print("closing port")
+        self.port.close()   # закрытие порта
+    def close(self):
+        print("closing port")
+        self.port.close()
+    def run(self):
+        print("Reading port")
+        self.ReadPort()
+    def ReadPort(self): # функция читающая порт
+        while(self.port.isOpen):
+            self.line = self.port.readline()    # получаем строку
+            print(self.line)    # дебагово выводим ее на экран
+            if(self.line.decode("utf-8") == 'q\n'):
+                print("Goodbye")
+                CloseProgram()
+            self.port.write(self.line)  # дебагово отправляем ее обратно в порт
+
 
 win = MainWindow()  # создаем объект класса главного окна
 countDown = CountDownWindow()   # создаем объект  класса окна обратного отсчета
@@ -217,13 +239,18 @@ greenTimer = TimerClass(0, 10, 'green', win)  # тут зеленый
 mainTimer = TimerClass(0, 15, 'main',win)   # тут главный
 gtkRunner = GtkRunner()
 
+pult = PultHandler()    # создаем обработчик пульта
+
+
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
+pult.start()    #запускаем обработчик пульта
 
-mainTimer.join()
+mainTimer.join()    # цепляем треды к основному потоку
 redTimer.join()
 greenTimer.join()
 gtkRunner.join()
+# pult.join()
