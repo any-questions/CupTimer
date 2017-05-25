@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import time         # либа для таймеров
 import threading    # либа для тредов
 import gi           # либа для gui
@@ -5,7 +6,6 @@ import serial       # либа для uart
 import simpleaudio as sa  # для аудио
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Pango
-from pynput import keyboard # для обработки нажатий клавиатуры
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
@@ -58,7 +58,7 @@ class CountDownWindow():    # класс вспомогательного окн
 
 def SwitchWindow(): # функция для переключения между окнами
     if(win.mainWindow.is_active()): # если открыто главное окно
-        # win.mainWindow.iconify()
+        # win.mainWindow.iconify()  # сворачиваем окно
         win.mainWindow.close()  # закрываем его
         time.sleep(0.01)    # задержка, чтобы успел освободиться дисплей
         countDown.countDownWindow.show_all()    # открываем второе окно
@@ -212,42 +212,16 @@ win.mainWindow.connect("check-resize", win.Resize)  # привазываем и�
 
 win.mainWindow.show_all()   # показать главное окно
 # создаем таймеры, минуты, секунды, какой таймер
-redTimer = TimerClass(0, 5, 'red', win)  # тут красный
-greenTimer = TimerClass(0, 5, 'green', win)  # тут зеленый
-mainTimer = TimerClass(0, 4, 'main',win)   # тут главный
+redTimer = TimerClass(0, 10, 'red', win)  # тут красный
+greenTimer = TimerClass(0, 10, 'green', win)  # тут зеленый
+mainTimer = TimerClass(0, 15, 'main',win)   # тут главный
 gtkRunner = GtkRunner()
-
-class EscException(Exception): pass  # обработчик исключений нажатий клавиатуры
-toggledGreen = 0
-toggledRed = 0
-toggledMain = 0
-def on_release(key):    # реакция на то что клавишу отпустили
-    global toggledGreen,toggledMain,toggledRed
-    if key == keyboard.Key.esc: # клавиша esc
-        print("escape")
-        raise EscException(key)  # дергаем исключение, которое закроет программу
-
-    if key.char == 'm':
-        if(toggledGreen == 0):
-            toggledGreen = 1
-            mainTimer.pause()
-        else:
-            toggledGreen = 0
-            mainTimer.resume()
-        print("maintimertoggle")
 
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
-
-with keyboard.Listener(on_release=on_release) as listener:  # класс для мониторинга клавиатуры
-    try:
-        listener.join()
-    except EscException as e:    # если срабатывает исключение
-        print("Exception happened")
-        CloseProgram()  # закрываем программу
 
 mainTimer.join()
 redTimer.join()
