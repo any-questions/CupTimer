@@ -4,9 +4,9 @@ import threading    # либа для тредов
 import gi           # либа для gui
 import serial       # либа для uart
 import simpleaudio as sa  # для аудио
-import cairo
+import cairo        # для визуальных эффектов
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Pango, Glib
+from gi.repository import Gtk, Pango, GLib
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
@@ -202,7 +202,7 @@ class GtkRunner(threading.Thread):
 class PultHandler(threading.Thread):    # класс обработки сообщений с пульта
     def __init__(self):
         self.port = serial.Serial(  #открываем порт
-            port='/dev/ttyAMA0',    # параметры порта
+            port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
             baudrate=9600,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
