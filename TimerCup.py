@@ -10,7 +10,7 @@ from gi.repository import Gtk, Pango, GLib
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
-eventShortBeep = threading.Event()
+eventShortBeep = threading.Event()  #события, которыми будем вызывать проигрывание аудио
 eventLongBeep = threading.Event()
 eventHighBeep = threading.Event()
 eventLowBeep = threading.Event()
@@ -23,17 +23,16 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.set_title("Timer") # заголовок окна
         self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
-        
+
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self.drawArea.connect("draw",self.expose)   # связываем событие с функцией перерисовки содержимого
         self.add(self.drawArea) # добавляем drawing area в окно приложения
         self.isRunning = True   # флаг что программа работает
-        self.alpha = 1.0    # начальное значение прозрачности (альфа канал, 1 - полностью непрозрачен)
-        self.size = 100  # начальное значение размера шрифта
-        
-        GLib.timeout_add(100, self.on_timer) # таймер по которому каждые 10 мс будем перерисовывать содержимое
-        
+        self.alpha = 0    # начальное значение прозрачности (альфа канал, 0 - полностью прозрачен)
+        GLib.timeout_add(20, self.on_timer) # таймер по которому каждые 20 мс будем перерисовывать содержимое
+        self.prevTime = 5
         self.show_all() # отображаем окно
+
     
     def on_timer(self):
         if not self.isRunning: return False
@@ -41,34 +40,49 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.drawArea.queue_draw()    # по таймеру дергаем событие на перерисовку
         return True
     def expose(self,widget,cr):
-        width = self.get_size()[0]
-        height = self.get_size()[1]
+        self.width = self.get_size()[0] #получаем значения ширины и высоты
+        self.height = self.get_size()[1]
+        self.size = self.height/5   # высота строки = 1/5 высоты экрана
+        cr.set_source_rgb(0,0,0)    # фон красим в черный
+        cr.paint()  # заливаем фон
+        cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL) # выставляем параметры шрифта
+
+        if(mainTimer.finalCountdown == True):   # если тикают последние 5 секунд главного таймера
+            self.alpha += 0.05  # постепенно увеличиваем непрозрачность чтобы числа постепенно появлялись
+            self.size += 10 # постепенно увеличиваем размер
+            if(mainTimer.currentTime[1] == self.prevTime - 1):  # если значение секунды сменилось
+                self.prevTime = mainTimer.currentTime[1]    # фиксируем новое значение времени
+                self.size = self.height/100 # возвращаем значения прозрачности и размера шрифта
+                self.alpha = 0.0            # чтобы все менялось красиво и циклично
+            cr.set_font_size(self.size*2)   # задаем размер текста
+            cr.move_to(self.width/2, self.height/2) # перемещаем курсор туда где будем рисовать
+            cr.set_source_rgb(1,1,1)    # задаем цвет текста
+            cr.text_path(str(mainTimer.currentTime[1]))  # сам текст
+            cr.clip()   # фиксируем зону где рисуем
+            cr.fill()   # заливаем текст
+            cr.paint_with_alpha(self.alpha) # рисуем с указанным значением прозрачности
+
+        else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
+            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
+            cr.set_font_size(self.size) # задаем размер строки
+            
+            cr.set_source_rgb(1,0,0)    # цвет текста - красный
+            cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать   
+            cr.text_path(redTimer.timeString)   # задаем текст
+            cr.fill()   # рисуем
         
-        cr.set_source_rgb(0,0,0)
-        cr.paint()
-        
-        cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)
-        
-        cr.set_font_size(self.size)
-        cr.set_source_rgb(1,0,0)
-        (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00")
-        
-        cr.move_to(width/3 - textWidth/2, height/3)
-        cr.text_path(redTimer.timeString)
-        cr.fill()
-        
-        cr.move_to(width*2/3 - textWidth/2, height/3)
-        cr.set_source_rgb(0,1,0)
-        cr.text_path(greenTimer.timeString)
-        cr.fill()
+            cr.move_to(self.width*3/4 - textWidth/2, self.height/3) # аналогично предыдущему
+            cr.set_source_rgb(0,1,0)
+            cr.text_path(greenTimer.timeString)
+            cr.fill()
  
-        cr.set_font_size(self.size*2)
-        cr.move_to(width/2 - textWidth/2, height*2/3)
-        cr.set_source_rgb(1,1,1)
-        cr.text_path(mainTimer.timeString)
-        cr.clip()
-        cr.fill()
-        cr.paint_with_alpha(self.alpha)
+            cr.set_font_size(self.size*2)   # аналогично, но у главного таймера текст в два раза больше
+            cr.move_to(self.width/2 - textWidth, self.height*2/3)
+            cr.set_source_rgb(1,1,1)
+            cr.text_path(mainTimer.timeString)
+            cr.clip()
+            cr.fill()
+            cr.paint()  #выводим все на экран
 
 class TimerClass(threading.Thread): # класс для таймера
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
@@ -76,8 +90,8 @@ class TimerClass(threading.Thread): # класс для таймера
         self.timer = timer  # переменная куда записывается какой таймер меняем
         self.isRunning = False  # флаг работы таймера
         self.isPaused = False   # флаг паузы таймера
+        self.finalCountdown = False # флаг того, что идет отсчет последних 5 секунд
         self.currentTime = [min, sec]   # массив с текущим временем таймера
-        self.eventShortBeep = threading.Event()
         self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])  # записываем время в паттерн
         threading.Thread.__init__(self,daemon=True)  # наследование функций треда
 
@@ -88,6 +102,8 @@ class TimerClass(threading.Thread): # класс для таймера
                 if(self.currentTime[1] < 0):    # если секунды кончились
                     self.currentTime[1] = 59    # переписываем секунды
                     self.currentTime[0] -= 1    # вычитаем минуту
+                if(self.currentTime[1] <= 5 and self.currentTime[0] == 0):
+                    self.finalCountdown = True
                 if(self.currentTime[1] == 0 and self.currentTime[0] == 0):  # если дотикали до 0 - останавливаем таймер
                     self.isRunning = False
                     if(self.timer == 'main'):   # если остановился главный таймер
@@ -112,6 +128,7 @@ class TimerClass(threading.Thread): # класс для таймера
 
     def setTime(self,min,sec):  # функция установки начального времени таймера
         self.isRunning = False  #приостанавливаем таймер на всякий случай
+        self.finalCountdown = False
         self.currentTime = [min,sec]    # записываем новое текущее время
         timeString = pattern.format(self.currentTime[0], self.currentTime[1]) # обновляем текст на экране
         if (self.timer == 'main'):
@@ -214,7 +231,7 @@ player = PlayMusic()    # создаем объект класса проигр�
 # создаем таймеры, минуты, секунды, какой таймер
 redTimer = TimerClass(0, 10, 'red')  # тут красный
 greenTimer = TimerClass(0, 10, 'green')  # тут зеленый
-mainTimer = TimerClass(0, 15, 'main')   # тут главный
+mainTimer = TimerClass(0, 7, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
