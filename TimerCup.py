@@ -55,7 +55,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
                 self.size = self.height/100 # возвращаем значения прозрачности и размера шрифта
                 self.alpha = 0.0            # чтобы все менялось красиво и циклично
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
-            if(self.size >= self.height/2 and mainTimer.currentTime[1] == 0): self.size = self.height/2
+            if(self.size >= self.height/2): self.size = self.height/2
             cr.set_font_size(self.size)   # задаем размер текста
             cr.move_to(self.width/2 - textWidth/2, self.height/2) # перемещаем курсор туда где будем рисовать
             cr.set_source_rgb(1,1,1)    # задаем цвет текста
@@ -193,7 +193,7 @@ def CloseProgram(w): # при закрытии программы останав
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-    pult.close()
+#    pult.close()
     Gtk.main_quit()
     print("WINDOW CLOSED")
 
@@ -240,7 +240,7 @@ mainTimer = TimerClass(0, 9, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
-pult = PultHandler()    # создаем обработчик пульта
+#pult = PultHandler()    # создаем обработчик пульта
 
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
