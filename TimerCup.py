@@ -21,6 +21,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         super(MainWindow,self).__init__() # переопределяем init
         
         self.set_title("Timer") # заголовок окна
+        #self.set_size_request(800,600)
         self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
 
@@ -42,20 +43,21 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
     def expose(self,widget,cr):
         self.width = self.get_size()[0] #получаем значения ширины и высоты
         self.height = self.get_size()[1]
-        self.size = self.height/5   # высота строки = 1/5 высоты экрана
         cr.set_source_rgb(0,0,0)    # фон красим в черный
         cr.paint()  # заливаем фон
         cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL) # выставляем параметры шрифта
 
         if(mainTimer.finalCountdown == True):   # если тикают последние 5 секунд главного таймера
             self.alpha += 0.05  # постепенно увеличиваем непрозрачность чтобы числа постепенно появлялись
-            self.size += 10 # постепенно увеличиваем размер
+            self.size = self.size + 20 # постепенно увеличиваем размер
             if(mainTimer.currentTime[1] == self.prevTime - 1):  # если значение секунды сменилось
                 self.prevTime = mainTimer.currentTime[1]    # фиксируем новое значение времени
                 self.size = self.height/100 # возвращаем значения прозрачности и размера шрифта
                 self.alpha = 0.0            # чтобы все менялось красиво и циклично
-            cr.set_font_size(self.size*2)   # задаем размер текста
-            cr.move_to(self.width/2, self.height/2) # перемещаем курсор туда где будем рисовать
+            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
+            if(self.size >= self.height/2 and mainTimer.currentTime[1] == 0): self.size = self.height/2
+            cr.set_font_size(self.size)   # задаем размер текста
+            cr.move_to(self.width/2 - textWidth/2, self.height/2) # перемещаем курсор туда где будем рисовать
             cr.set_source_rgb(1,1,1)    # задаем цвет текста
             cr.text_path(str(mainTimer.currentTime[1]))  # сам текст
             cr.clip()   # фиксируем зону где рисуем
@@ -63,11 +65,12 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             cr.paint_with_alpha(self.alpha) # рисуем с указанным значением прозрачности
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
-            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
+            self.size = self.height/5   # высота строки = 1/5 высоты экрана
             cr.set_font_size(self.size) # задаем размер строки
-            
+            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
+
             cr.set_source_rgb(1,0,0)    # цвет текста - красный
-            cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать   
+            cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать
             cr.text_path(redTimer.timeString)   # задаем текст
             cr.fill()   # рисуем
         
@@ -77,12 +80,14 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             cr.fill()
  
             cr.set_font_size(self.size*2)   # аналогично, но у главного таймера текст в два раза больше
-            cr.move_to(self.width/2 - textWidth, self.height*2/3)
+            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
+            cr.move_to(self.width/2 - textWidth/2, self.height*2/3)
             cr.set_source_rgb(1,1,1)
             cr.text_path(mainTimer.timeString)
             cr.clip()
             cr.fill()
             cr.paint()  #выводим все на экран
+            self.size = self.height/100
 
 class TimerClass(threading.Thread): # класс для таймера
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
@@ -229,9 +234,9 @@ class PultHandler(threading.Thread):    # класс обработки сооб
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 
 # создаем таймеры, минуты, секунды, какой таймер
-redTimer = TimerClass(0, 10, 'red')  # тут красный
-greenTimer = TimerClass(0, 10, 'green')  # тут зеленый
-mainTimer = TimerClass(0, 7, 'main')   # тут главный
+redTimer = TimerClass(2, 00, 'red')  # тут красный
+greenTimer = TimerClass(2, 00, 'green')  # тут зеленый
+mainTimer = TimerClass(0, 9, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
