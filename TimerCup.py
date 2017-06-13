@@ -193,7 +193,7 @@ def CloseProgram(w): # при закрытии программы останав
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-#    pult.close()
+    pult.close()
     Gtk.main_quit()
     print("WINDOW CLOSED")
 
@@ -230,17 +230,17 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         while(self.port.isOpen):
             self.line = self.port.readline()    # получаем строку
             print(self.line)    # дебагово выводим ее на экран
+            #self.port.write(self.line)  # дебагово отправляем ее обратно в порт
             if(self.line.decode("utf-8") == 'q\n'):
                 print("Goodbye")
-                CloseProgram()
-            self.port.write(self.line)  # дебагово отправляем ее обратно в порт
+                CloseProgram(0)
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 
 # создаем таймеры, минуты, секунды, какой таймер
-redTimer = TimerClass(2, 00, 'red')  # тут красный
-greenTimer = TimerClass(2, 00, 'green')  # тут зеленый
-mainTimer = TimerClass(0, 9, 'main')   # тут главный
+redTimer = TimerClass(2, 0, 'red')  # тут красный
+greenTimer = TimerClass(2, 0, 'green')  # тут зеленый
+mainTimer = TimerClass(0, 10, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
