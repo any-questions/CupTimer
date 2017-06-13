@@ -206,16 +206,20 @@ class GtkRunner(threading.Thread):
 
 class PultHandler(threading.Thread):    # класс обработки сообщений с пульта
     def __init__(self):
-        self.port = serial.Serial(  #открываем порт
-            port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
-            baudrate=9600,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS)  # открытие порта
-        threading.Thread.__init__(self,daemon=True)  # наследование функций треда
+        try:
+            self.port = serial.Serial(  #открываем порт
+                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        baudrate=9600,
+                                        parity=serial.PARITY_NONE,
+                                        stopbits=serial.STOPBITS_ONE,
+                                        bytesize=serial.EIGHTBITS)  # открытие порта
+            threading.Thread.__init__(self,daemon=True)  # наследование функций треда
+        except serial.SerialException:
+            print("Error opening port, please try again.")
+        
     def __del__(self):
         print("closing port")
-        self.port.close()   # закрытие порта
+        self.port.close()   # закрытие портая 
     def close(self):
         self.port.close()
         print("port closed")
@@ -240,17 +244,17 @@ mainTimer = TimerClass(0, 9, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
-#pult = PultHandler()    # создаем обработчик пульта
+pult = PultHandler()    # создаем обработчик пульта
 
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
-#pult.start()    #запускаем обработчик пульта
+pult.start()    #запускаем обработчик пульта
 
 mainTimer.join()    # цепляем треды к основному потоку
 redTimer.join()
 greenTimer.join()
 gtkRunner.join()
-#pult.join()
+pult.join()
