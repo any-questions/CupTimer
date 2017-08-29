@@ -45,7 +45,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.height = self.get_size()[1]
         cr.set_source_rgb(0,0,0)    # фон красим в черный
         cr.paint()  # заливаем фон
-        cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL) # выставляем параметры шрифта
+        # cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL) # выставляем параметры шрифта
+        cr.select_font_face("DigitalDream", cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
 
         if(mainTimer.finalCountdown == True):   # если тикают последние 5 секунд главного таймера
             self.alpha += 0.05  # постепенно увеличиваем непрозрачность чтобы числа постепенно появлялись
@@ -54,10 +55,10 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
                 self.prevTime = mainTimer.currentTime[1]    # фиксируем новое значение времени
                 self.size = self.height/100 # возвращаем значения прозрачности и размера шрифта
                 self.alpha = 0.0            # чтобы все менялось красиво и циклично
-            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
-            if(self.size >= self.height/2): self.size = self.height/2
+            if(self.size >= self.height/3): self.size = self.height/3
             cr.set_font_size(self.size)   # задаем размер текста
-            cr.move_to(self.width/2 - textWidth/2, self.height/2) # перемещаем курсор туда где будем рисовать
+            (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
+            cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/4) # перемещаем курсор туда где будем рисовать
             cr.set_source_rgb(1,1,1)    # задаем цвет текста
             cr.text_path(str(mainTimer.currentTime[1]))  # сам текст
             cr.clip()   # фиксируем зону где рисуем
@@ -65,7 +66,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             cr.paint_with_alpha(self.alpha) # рисуем с указанным значением прозрачности
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
-            self.size = self.height/5   # высота строки = 1/5 высоты экрана
+            self.size = self.height/6   # высота строки = 1/5 высоты экрана
             cr.set_font_size(self.size) # задаем размер строки
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
 
@@ -87,7 +88,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             cr.clip()
             cr.fill()
             cr.paint()  #выводим все на экран
-            self.size = self.height/100
+            self.size = self.height/6
 
 class TimerClass(threading.Thread): # класс для таймера
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
@@ -170,6 +171,7 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             if(eventLongBeep.isSet()):  # проверяется установлено ли событие, длинный писк
                 eventLongBeep.clear()   # если да - сбрасываем событие
                 # print("Long Beep ") # пищим нужным тоном
+                # self.long_beep.play()
             elif (eventShortBeep.isSet()):  # аналогично, короткий писк
                 eventShortBeep.clear()
                 # print("Short Beep ")
@@ -193,7 +195,7 @@ def CloseProgram(w): # при закрытии программы останав
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-    pult.close()
+    # pult.close()
     Gtk.main_quit()
     print("WINDOW CLOSED")
 
@@ -208,7 +210,7 @@ class PultHandler(threading.Thread):    # класс обработки сооб
     def __init__(self):
         try:
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
@@ -239,22 +241,22 @@ player = PlayMusic()    # создаем объект класса проигр�
 
 # создаем таймеры, минуты, секунды, какой таймер
 redTimer = TimerClass(2, 0, 'red')  # тут красный
-greenTimer = TimerClass(2, 0, 'green')  # тут зеленый
+greenTimer = TimerClass(2, 30, 'green')  # тут зеленый
 mainTimer = TimerClass(0, 10, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
-pult = PultHandler()    # создаем обработчик пульта
+# pult = PultHandler()    # создаем обработчик пульта
 
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
-pult.start()    #запускаем обработчик пульта
+# pult.start()    #запускаем обработчик пульта
 
 mainTimer.join()    # цепляем треды к основному потоку
 redTimer.join()
 greenTimer.join()
 gtkRunner.join()
-pult.join()
+# pult.join()
