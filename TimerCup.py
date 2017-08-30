@@ -31,7 +31,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.isRunning = True   # флаг что программа работает
         self.alpha = 0    # начальное значение прозрачности (альфа канал, 0 - полностью прозрачен)
         GLib.timeout_add(20, self.on_timer) # таймер по которому каждые 20 мс будем перерисовывать содержимое
-        self.prevTime = 5
+        self.prevTime = 5   # значение с которого будем рисовать красивый обратный отсчет
         self.show_all() # отображаем окно
 
     
@@ -45,8 +45,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.height = self.get_size()[1]
         cr.set_source_rgb(0,0,0)    # фон красим в черный
         cr.paint()  # заливаем фон
-        # cr.select_font_face("Ds-Digital",cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL) # выставляем параметры шрифта
-        cr.select_font_face("DigitalDream", cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
+        # cr.select_font_face("DejaVu Sans",cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD) # выставляем параметры шрифта
+        cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
 
         if(mainTimer.finalCountdown == True):   # если тикают последние 5 секунд главного таймера
             self.alpha += 0.05  # постепенно увеличиваем непрозрачность чтобы числа постепенно появлялись
@@ -102,25 +102,27 @@ class TimerClass(threading.Thread): # класс для таймера
         threading.Thread.__init__(self,daemon=True)  # наследование функций треда
 
     def update(self):   # функция обновляющая текст таймера
-        while(self.isRunning):  #работает только когда таймер запущен
-            if(self.isPaused == False):
+        while(self.isRunning):  # работает только когда таймер запущен
+            if(self.isPaused == False): # и не на паузе
                 self.currentTime[1] -= 1    # вычитаем 1 секунду
                 if(self.currentTime[1] < 0):    # если секунды кончились
                     self.currentTime[1] = 59    # переписываем секунды
                     self.currentTime[0] -= 1    # вычитаем минуту
-                if(self.currentTime[1] <= 5 and self.currentTime[0] == 0):
-                    self.finalCountdown = True
+                if(self.currentTime[1] <= 5 and self.currentTime[0] == 0):  # если осталось тикать 5 секунд
+                    self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
+                    if(self.timer == 'main'):   # если отсчет у главного таймера
+                        eventLowBeep.set()      # пищим одним тоном
+                    else:                       # если у других таймеров
+                        eventShortBeep.set()    # другим тоном
+
                 if(self.currentTime[1] == 0 and self.currentTime[0] == 0):  # если дотикали до 0 - останавливаем таймер
                     self.isRunning = False
                     if(self.timer == 'main'):   # если остановился главный таймер
-                        eventLowBeep.set()  # пищим другим тоном
+                        eventHighBeep.set()  # пищим одним тоном
+                    else:                   # если любой другой таймер
+                        eventLongBeep.set() # пищим другим тоном
 
                 self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])   # записываем время в паттерн
-                if(self.timer=='main'): # в зависимости от того, с каким таймером работаем (тут главный таймер)
-                    eventHighBeep.set() # пищание одним тоном (дебагово)
-                #TODO: дописать вызов аудио
-                #print(self.timer + " " + self.timeString)   # дебаговый вывод
-                
                 time.sleep(1)   #останавливаем тред на секунду
 
     def __del__(self):  # деструктор класса - останавливает таймер
@@ -137,12 +139,12 @@ class TimerClass(threading.Thread): # класс для таймера
         self.finalCountdown = False
         self.currentTime = [min,sec]    # записываем новое текущее время
         timeString = pattern.format(self.currentTime[0], self.currentTime[1]) # обновляем текст на экране
-        if (self.timer == 'main'):
-            win.mainTimerText.set_markup(timeString)
-        elif (self.timer == 'red'):
-            win.redTimerText.set_markup(timeString)
-        elif (self.timer == 'green'):
-            win.greenTimerText.set_markup(timeString)
+        # if (self.timer == 'main'):
+        #     win.mainTimerText.set_markup(timeString)
+        # elif (self.timer == 'red'):
+        #     win.redTimerText.set_markup(timeString)
+        # elif (self.timer == 'green'):
+        #     win.greenTimerText.set_markup(timeString)
 
     def pause(self):    # функция постановки таймера на паузу
         self.isPaused = True
@@ -170,19 +172,22 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         while(self.isRunning == True):  # работает пока поднят флаг
             if(eventLongBeep.isSet()):  # проверяется установлено ли событие, длинный писк
                 eventLongBeep.clear()   # если да - сбрасываем событие
-                # print("Long Beep ") # пищим нужным тоном
-                # self.long_beep.play()
+                self.long_beep.play()   # пищим нужным тоном
             elif (eventShortBeep.isSet()):  # аналогично, короткий писк
                 eventShortBeep.clear()
+                self.short_beep.play()
                 # print("Short Beep ")
             elif (eventHighBeep.isSet()):   # высокий писк
                 eventHighBeep.clear()
+                self.high_beep.play()
                 # print("High Beep ")
             elif (eventLowBeep.isSet()):    # низкий писк
                 eventLowBeep.clear()
+                self.low_beep.play()
                 # print("Low Beep ")
             elif (eventAirHorn.isSet()):    # стартовый горн
                 eventAirHorn.clear()
+                self.horn.play()
                 # print("Air Horn ")
 
 def CloseProgram(w): # при закрытии программы останавливаем таймеры и закрываем окно
@@ -240,9 +245,9 @@ class PultHandler(threading.Thread):    # класс обработки сооб
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 
 # создаем таймеры, минуты, секунды, какой таймер
-redTimer = TimerClass(2, 0, 'red')  # тут красный
-greenTimer = TimerClass(2, 30, 'green')  # тут зеленый
-mainTimer = TimerClass(0, 10, 'main')   # тут главный
+redTimer = TimerClass(3, 0, 'red')  # тут красный
+greenTimer = TimerClass(3, 0, 'green')  # тут зеленый
+mainTimer = TimerClass(0, 15, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
