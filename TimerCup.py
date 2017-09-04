@@ -21,8 +21,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         super(MainWindow,self).__init__() # переопределяем init
         
         self.set_title("Timer") # заголовок окна
-        #self.set_size_request(800,600)
-        self.fullscreen()   # растягиваем на весь экран
+        self.set_size_request(800,600)
+        #self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
 
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
@@ -204,7 +204,7 @@ def CloseProgram(w): # при закрытии программы останав
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-    # pult.close()
+    pult.close()
     Gtk.main_quit()
     print("Window closed.")
 
@@ -212,6 +212,7 @@ def CloseProgram(w): # при закрытии программы останав
 class GtkRunner(threading.Thread):
     def __init__(self):   #запуск гтк в отдельном треде
         threading.Thread.__init__(self)
+
     def run(self):
         Gtk.main()
 
@@ -219,7 +220,7 @@ class PultHandler(threading.Thread):    # класс обработки сооб
     def __init__(self):
         try:
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
@@ -230,21 +231,32 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         
     def __del__(self):
         print("closing port")
-        self.port.close()   # закрытие портая 
+        self.isRunning = False
+        self.port.close()   # закрытие порта
+
     def close(self):
+        self.isRunning = False
         self.port.close()
         print("port closed")
+
     def run(self):
         print("Reading port")
+        self.isRunning = True
         self.ReadPort()
+
     def ReadPort(self): # функция читающая порт
-        while(self.port.isOpen):
-            self.line = self.port.readline()    # получаем строку
-            print(self.line)    # дебагово выводим ее на экран
-            #self.port.write(self.line)  # дебагово отправляем ее обратно в порт
-            if(self.line.decode("utf-8") == 'q\n'):
-                print("Goodbye")
-                CloseProgram(0)
+        while(self.isRunning == True):
+            if(self.port.isOpen):   # проверяем открыт ли uart
+                self.line = self.port.readline()    # получаем строку
+                print(self.line)    # дебагово выводим ее на экран
+                self.port.write(self.line)  # дебагово отправляем ее обратно в порт
+                if(self.line.decode("utf-8") == 'q\n'):
+                    print("Goodbye")
+                    self.port.close()
+                    CloseProgram(0)
+            else:
+                print("port closed")
+        print("pult is closed")
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 
@@ -255,17 +267,17 @@ mainTimer = TimerClass(0, 10, 'main')   # тут главный
 MainWindow()  # создаем объект класса главного окна
 gtkRunner = GtkRunner()
 
-# pult = PultHandler()    # создаем обработчик пульта
+pult = PultHandler()    # создаем обработчик пульта
 
 player.start()  # запускаем проигрыватель музыки
 mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
-# pult.start()    #запускаем обработчик пульта
+pult.start()    #запускаем обработчик пульта
 
 mainTimer.join()    # цепляем треды к основному потоку
 redTimer.join()
 greenTimer.join()
 gtkRunner.join()
-# pult.join()
+pult.join()
