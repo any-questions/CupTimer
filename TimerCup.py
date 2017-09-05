@@ -204,7 +204,8 @@ def CloseProgram(w): # при закрытии программы останав
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-    pult.close()
+    if(pult == True):
+        pult.close()
     Gtk.main_quit()
     print("Window closed.")
 
@@ -220,7 +221,7 @@ class PultHandler(threading.Thread):    # класс обработки сооб
     def __init__(self):
         try:
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
@@ -274,10 +275,12 @@ mainTimer.start()   #запускаем таймеры
 redTimer.start()
 greenTimer.start()
 gtkRunner.start()   # запускаем гтк
-pult.start()    #запускаем обработчик пульта
+if (pult == True):
+    pult.start()    #запускаем обработчик пульта
 
 mainTimer.join()    # цепляем треды к основному потоку
 redTimer.join()
 greenTimer.join()
 gtkRunner.join()
-pult.join()
+if (pult == True):
+    pult.join()

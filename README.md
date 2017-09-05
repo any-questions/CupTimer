@@ -2,7 +2,7 @@
 Проект таймера для кубка ртк для Raspberry pi
 
 Установка simpleaudio:
-$ sudo pip3 insall simpleaudio
+$ sudo pip3 install simpleaudio
 
 Установка cairo:
 $ sudo apt install python3-cairo python3-gi-cairo
