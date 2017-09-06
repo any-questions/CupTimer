@@ -195,19 +195,22 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
                 # print("Air Horn ")
 
 def CloseProgram(w): # при закрытии программы останавливаем таймеры и закрываем окно
+    print("Stopping timers...")
     mainTimer.isRunning = False
     redTimer.isRunning = False
     greenTimer.isRunning = False
+    print("Stopping music...")
     player.isRunning = False
     eventShortBeep.clear()
     eventLongBeep.clear()
     eventHighBeep.clear()
     eventLowBeep.clear()
     eventAirHorn.clear()
-    if(pult == True):
-        pult.close()
+    print("Closing pult...")
+    pult.close()
+    print("Closing window...")
     Gtk.main_quit()
-    print("Window closed.")
+    print("Program closed.")
 
 
 class GtkRunner(threading.Thread):
@@ -220,67 +223,78 @@ class GtkRunner(threading.Thread):
 class PultHandler(threading.Thread):    # класс обработки сообщений с пульта
     def __init__(self):
         try:
+            print("Opening UART port...")
             self.port = serial.Serial(  #открываем порт
                                         port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
                                         bytesize=serial.EIGHTBITS)  # открытие порта
-            threading.Thread.__init__(self,daemon=True)  # наследование функций треда
         except serial.SerialException:
-            print("Error opening port, please try again.")
+            print("ERROR: failed to open UART")
+        threading.Thread.__init__(self, daemon=True)  # наследование функций треда
         
     def __del__(self):
-        print("closing port")
+        print("Closing port...")
         self.isRunning = False
-        self.port.close()   # закрытие порта
+        try:
+            self.port.close()   # закрытие порта
+        except AttributeError:  # сообщение об ошибке, если не вышло
+            print("Closing ERROR, no port was created.")
 
     def close(self):
+        print("Closing port...")
         self.isRunning = False
-        self.port.close()
-        print("port closed")
+        try:
+            self.port.close()   # закрытие порта
+        except AttributeError:  # сообщение об ошибке, если не вышло
+            print("Closing ERROR, no port was created.")
 
     def run(self):
-        print("Reading port")
-        self.isRunning = True
-        self.ReadPort()
+        print("Reading port...")
+        try:
+            self.isRunning = True
+            self.ReadPort() # получение сообщений из порта
+        except:
+            print("Reading ERROR, no port was created.")    #сообщение об ошибке, если не вышло
+
 
     def ReadPort(self): # функция читающая порт
         while(self.isRunning == True):
             if(self.port.isOpen):   # проверяем открыт ли uart
-                self.line = self.port.readline()    # получаем строку
+                self.line = self.port.read()    # поочереди выхватываем байты посылки
                 print(self.line)    # дебагово выводим ее на экран
                 self.port.write(self.line)  # дебагово отправляем ее обратно в порт
-                if(self.line.decode("utf-8") == 'q\n'):
+                if(self.line.decode("utf-8") == 'q'):
                     print("Goodbye")
                     self.port.close()
                     CloseProgram(0)
             else:
-                print("port closed")
-        print("pult is closed")
+                print("Port is not opened")
+        print("Reading stopped")
 
-player = PlayMusic()    # создаем объект класса проигрывания музыки
+
+
+MainWindow()  # создаем объект класса главного окна
+gtkRunner = GtkRunner()
 
 # создаем таймеры, минуты, секунды, какой таймер
 redTimer = TimerClass(3, 0, 'red')  # тут красный
 greenTimer = TimerClass(3, 0, 'green')  # тут зеленый
 mainTimer = TimerClass(0, 10, 'main')   # тут главный
-MainWindow()  # создаем объект класса главного окна
-gtkRunner = GtkRunner()
+
+player = PlayMusic()    # создаем объект класса проигрывания музыки
 
 pult = PultHandler()    # создаем обработчик пульта
 
-player.start()  # запускаем проигрыватель музыки
+gtkRunner.start()   # запускаем гтк
 mainTimer.start()   #запускаем таймеры
+player.start()  # запускаем проигрыватель музыки
 redTimer.start()
 greenTimer.start()
-gtkRunner.start()   # запускаем гтк
-if (pult == True):
-    pult.start()    #запускаем обработчик пульта
+pult.start()    #запускаем обработчик пульта
 
-mainTimer.join()    # цепляем треды к основному потоку
+gtkRunner.join()    # цепляем треды к основному потоку
+mainTimer.join()
 redTimer.join()
 greenTimer.join()
-gtkRunner.join()
-if (pult == True):
-    pult.join()
