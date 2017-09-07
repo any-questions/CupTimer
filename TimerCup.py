@@ -21,8 +21,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         super(MainWindow,self).__init__() # переопределяем init
         
         self.set_title("Timer") # заголовок окна
-        self.set_size_request(800,600)
-        #self.fullscreen()   # растягиваем на весь экран
+        # self.set_size_request(800,600)
+        self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
 
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
@@ -47,25 +47,19 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         cr.set_source_rgb(0,0,0)    # фон красим в черный
         cr.paint()  # заливаем фон
         # cr.select_font_face("DejaVu Sans",cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD) # выставляем параметры шрифта
-        cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
+        cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
 
         if(mainTimer.finalCountdown == True):   # если тикают последние 5 секунд главного таймера
-            # self.alpha += 0.1  # постепенно увеличиваем непрозрачность чтобы числа постепенно появлялись
             self.size = self.size + (self.height/20) # постепенно увеличиваем размер
             if(mainTimer.currentTime[1] == self.prevTime - 1):  # если значение секунды сменилось
                 self.prevTime = mainTimer.currentTime[1]    # фиксируем новое значение времени
                 self.size = self.height/50 # возвращаем значения прозрачности и размера шрифта
-                # self.alpha = 0.0            # чтобы все менялось красиво и циклично
             if(self.size >= self.height/3): self.size = self.height/3
             cr.set_font_size(self.size)   # задаем размер текста
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
             cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/4) # перемещаем курсор туда где будем рисовать
             cr.set_source_rgb(1,1,1)    # задаем цвет текста
-            cr.text_path(str(mainTimer.currentTime[1]))  # сам текст
-            cr.clip()   # фиксируем зону где рисуем
-            cr.fill()   # заливаем текст
-            # cr.paint_with_alpha(self.alpha) # рисуем с указанным значением прозрачности
-            cr.paint()  # рисуем с указанным значением прозрачности
+            cr.show_text(str(mainTimer.currentTime[1]))  # сам текст
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
             self.size = self.height/6   # высота строки = 1/5 высоты экрана
@@ -74,23 +68,38 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
 
             cr.set_source_rgb(1,0,0)    # цвет текста - красный
             cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать
-            cr.text_path(redTimer.timeString)   # задаем текст
-            cr.fill()   # рисуем
-        
+            cr.show_text(redTimer.timeString)  # задаем текст
+
             cr.move_to(self.width*3/4 - textWidth/2, self.height/3) # аналогично предыдущему
-            cr.set_source_rgb(0,1,0)
-            cr.text_path(greenTimer.timeString)
-            cr.fill()
- 
+            cr.set_source_rgb(0,1,0)    # цвет текста - зеленый
+            cr.show_text(greenTimer.timeString)
+
             cr.set_font_size(self.size*2)   # аналогично, но у главного таймера текст в два раза больше
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
             cr.move_to(self.width/2 - textWidth/2, self.height*2/3)
-            cr.set_source_rgb(1,1,1)
-            cr.text_path(mainTimer.timeString)
-            cr.clip()
-            cr.fill()
-            cr.paint()  #выводим все на экран
+            cr.set_source_rgb(1,1,1)    # цвет текста - белый
+            cr.show_text(mainTimer.timeString)
             self.size = self.height/6
+
+        self.infoSize = self.height/60  #вывод сервисной информации от пультов, высота строки совсем маленькая
+        cr.set_font_size(self.infoSize)
+        (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("P1: None;")
+        cr.select_font_face("DejaVu Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
+        cr.set_source_rgb(1,1,1)
+        for i in range(3):  #в цикле выводим статичную часть надписи
+            cr.move_to(self.width/100+textWidth*1.5*i, self.height*59/60)
+            cr.show_text("P"+str(i+1)+": ")
+        for i in range(3):  #в цикле же выводим информацию от пультов
+            cr.move_to(self.width/100+textWidth*1.5*i+textWidth*4/9,self.height*59/60)
+            if(pult.status[i] == 'None'):   # разным цветом,в зависимости от информации
+                cr.set_source_rgb(1,0,0)    # красным, если пульта нет, или заряд слишком маленький
+            elif (pult.status[i] >= 5):
+                cr.set_source_rgb(0,1,0)    # зеленым, если все хорошо
+            elif (pult.status[i] < 3):
+                cr.set_source_rgb(1,0,0)
+            else:
+                cr.set_source_rgb(1,1,0)    # желтым если начало садиится
+            cr.show_text(str(pult.status[i]))
 
 class TimerClass(threading.Thread): # класс для таймера
     global eventHighBeep,eventAirHorn,eventLowBeep,eventLongBeep,eventShortBeep
@@ -142,13 +151,6 @@ class TimerClass(threading.Thread): # класс для таймера
         self.isRunning = False  #приостанавливаем таймер на всякий случай
         self.finalCountdown = False
         self.currentTime = [min,sec]    # записываем новое текущее время
-        #timeString = pattern.format(self.currentTime[0], self.currentTime[1]) # обновляем текст на экране
-        # if (self.timer == 'main'):
-        #     win.mainTimerText.set_markup(timeString)
-        # elif (self.timer == 'red'):
-        #     win.redTimerText.set_markup(timeString)
-        # elif (self.timer == 'green'):
-        #     win.greenTimerText.set_markup(timeString)
 
     def pause(self):    # функция постановки таймера на паузу
         self.isPaused = True
@@ -180,19 +182,15 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             elif (eventShortBeep.isSet()):  # аналогично, короткий писк
                 eventShortBeep.clear()
                 self.short_beep.play()
-                # print("Short Beep ")
             elif (eventHighBeep.isSet()):   # высокий писк
                 eventHighBeep.clear()
                 self.high_beep.play()
-                # print("High Beep ")
             elif (eventLowBeep.isSet()):    # низкий писк
                 eventLowBeep.clear()
                 self.low_beep.play()
-                # print("Low Beep ")
             elif (eventAirHorn.isSet()):    # стартовый горн
                 eventAirHorn.clear()
                 self.horn.play()
-                # print("Air Horn ")
 
 def CloseProgram(w): # при закрытии программы останавливаем таймеры и закрываем окно
     print("Stopping timers...")
@@ -225,15 +223,16 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         try:
             print("Opening UART port...")
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
                                         bytesize=serial.EIGHTBITS)  # открытие порта
         except serial.SerialException:
             print("ERROR: failed to open UART")
+        self.status = [5,4,2]    #список содержащий статус для каждого из пультов (None - пульт не найден, напряжение - пульт на месте)
         threading.Thread.__init__(self, daemon=True)  # наследование функций треда
-        
+
     def __del__(self):
         print("Closing port...")
         self.isRunning = False
