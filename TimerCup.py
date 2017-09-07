@@ -5,6 +5,7 @@ import gi           # для gui
 import serial       # для uart
 import simpleaudio as sa  # для аудио
 import cairo        # для визуальных эффектов
+import cobs         # для декодирования сообщений из uart
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Pango, GLib
 
@@ -21,8 +22,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         super(MainWindow,self).__init__() # переопределяем init
         
         self.set_title("Timer") # заголовок окна
-        # self.set_size_request(800,600)
-        self.fullscreen()   # растягиваем на весь экран
+        self.set_size_request(800,600)
+        #self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
 
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
@@ -223,14 +224,15 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         try:
             print("Opening UART port...")
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
                                         bytesize=serial.EIGHTBITS)  # открытие порта
         except serial.SerialException:
             print("ERROR: failed to open UART")
-        self.status = [5,4,2]    #список содержащий статус для каждого из пультов (None - пульт не найден, напряжение - пульт на месте)
+        self.status = [5.5,4.3,2.1]    #список содержащий статус для каждого из пультов (None - пульт не найден, напряжение - пульт на месте)
+        self.receivedMessage = ''   #полученное сообщение
         threading.Thread.__init__(self, daemon=True)  # наследование функций треда
 
     def __del__(self):
@@ -262,8 +264,7 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         while(self.isRunning == True):
             if(self.port.isOpen):   # проверяем открыт ли uart
                 self.line = self.port.read()    # поочереди выхватываем байты посылки
-                print(self.line)    # дебагово выводим ее на экран
-                self.port.write(self.line)  # дебагово отправляем ее обратно в порт
+                print(hex(ord(self.line)))
                 if(self.line.decode("utf-8") == 'q'):
                     print("Goodbye")
                     self.port.close()
