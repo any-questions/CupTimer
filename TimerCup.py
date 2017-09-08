@@ -22,8 +22,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         super(MainWindow,self).__init__() # переопределяем init
         
         self.set_title("Timer") # заголовок окна
-        self.set_size_request(800,600)
-        #self.fullscreen()   # растягиваем на весь экран
+        #self.set_size_request(800,600)
+        self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
 
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
@@ -224,7 +224,7 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         try:
             print("Opening UART port...")
             self.port = serial.Serial(  #открываем порт
-                                        port='/dev/ttyUSB0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
+                                        port='/dev/ttyAMA0',    # параметры порта (USB0 для пк, AMA0 для родного uart малины)
                                         baudrate=9600,
                                         parity=serial.PARITY_NONE,
                                         stopbits=serial.STOPBITS_ONE,
@@ -232,7 +232,8 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         except serial.SerialException:
             print("ERROR: failed to open UART")
         self.status = [5.5,4.3,2.1]    #список содержащий статус для каждого из пультов (None - пульт не найден, напряжение - пульт на месте)
-        self.receivedMessage = ''   #полученное сообщение
+        self.receivedMessage = bytearray()   #полученное сообщение
+        self.byte = bytearray()
         threading.Thread.__init__(self, daemon=True)  # наследование функций треда
 
     def __del__(self):
@@ -263,15 +264,27 @@ class PultHandler(threading.Thread):    # класс обработки сооб
     def ReadPort(self): # функция читающая порт
         while(self.isRunning == True):
             if(self.port.isOpen):   # проверяем открыт ли uart
-                self.line = self.port.read()    # поочереди выхватываем байты посылки
-                print(hex(ord(self.line)))
-                if(self.line.decode("utf-8") == 'q'):
-                    print("Goodbye")
-                    self.port.close()
-                    CloseProgram(0)
+                # print("Getting byte")
+                self.byte = self.port.read()    # поочереди выхватываем байты посылки
+                print(self.byte)
+                self.receivedMessage.append(ord(self.byte))
+                print(self.receivedMessage)
+                if (hex(ord(self.byte)) == hex(0)):
+                    print("parsing")
+                    self.ParseMessage(self.receivedMessage)
+                    print("cleaning")
+                    self.receivedMessage.clear()
+                    print(self.receivedMessage)
             else:
                 print("Port is not opened")
         print("Reading stopped")
+
+    def ParseMessage(self,encodedLine):
+        print("got message")
+        for i in range(3):
+            print(encodedLine[i])
+        # self.decodedLine = cobs.decode(encodedLine)
+
 
 
 
