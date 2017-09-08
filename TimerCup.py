@@ -7,7 +7,7 @@ import simpleaudio as sa  # для аудио
 import cairo        # для визуальных эффектов
 import cobs         # для декодирования сообщений из uart
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango, GLib, Gdk
 
 pattern = '{0:02d}:{1:02d}' # формат вывода строки
 
@@ -25,7 +25,6 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         #self.set_size_request(800,600)
         self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
-
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self.drawArea.connect("draw",self.expose)   # связываем событие с функцией перерисовки содержимого
         self.add(self.drawArea) # добавляем drawing area в окно приложения
@@ -34,7 +33,8 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         GLib.timeout_add(100, self.on_timer) # таймер по которому каждые 100 мс будем перерисовывать содержимое
         self.prevTime = 5   # значение с которого будем рисовать красивый обратный отсчет
         self.show_all() # отображаем окно
-
+        cursor = Gdk.Cursor.new(Gdk.CursorType.BLANK_CURSOR)    #скрываем курсор
+        self.get_window().set_cursor(cursor)
     
     def on_timer(self):
         if not self.isRunning: return False
