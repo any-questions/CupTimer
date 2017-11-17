@@ -87,7 +87,9 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         self.show_all() # отображаем окно
         cursor = Gdk.Cursor.new(Gdk.CursorType.BLANK_CURSOR)    #скрываем курсор
         self.get_window().set_cursor(cursor)
-    
+
+
+
     def on_timer(self):
         if not self.isRunning: return False
         
@@ -101,77 +103,79 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
         cr.paint()  # заливаем фон
         # cr.select_font_face("DejaVu Sans",cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD) # выставляем параметры шрифта
         cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
-
         if(mainTimer.finalCountdown == True and not mode == pause):   # если тикают последние 5 секунд главного таймера
-            self.size = self.size + (self.height/20) # постепенно увеличиваем размер
+            self.size = self.size + self.stepSize # постепенно увеличиваем размер
             if((mainTimer.currentTime[1] == self.prevTime - 1)):  # если значение секунды сменилось
                 self.prevTime = mainTimer.currentTime[1]    # фиксируем новое значение времени
-                self.size = self.height/50 # возвращаем значения прозрачности и размера шрифта
-            if(self.size >= self.height/3): self.size = self.height/3
+                self.size = self.height/50 # возвращаем значения размера шрифта
+            if(self.size >= self.maxSize): self.size = self.maxSize   # ограничиваем максимальный размер шрифта
             cr.set_font_size(self.size)   # задаем размер текста
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("0") # смотрим какую ширину/высоту будет занимать указанный текст
-            cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/4) # перемещаем курсор туда где будем рисовать
+            cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/2) # перемещаем курсор туда где будем рисовать (середина экрана)
             cr.set_source_rgb(1,1,1)    # задаем цвет текста
 
             # если дотикал до конца таймер попытки - выводим соответствующий текст
-            if(mainTimer.currentTime[0] == 0 and mainTimer.currentTime[1] == 0 and mainTimer.GetTimerListLen() == 1 and self.size == self.height/3):
-                cr.set_font_size(self.height/7)  # задаем размер текста
-                cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
+            if(mainTimer.currentTime[0] == 0 and mainTimer.currentTime[1] == 0 and mainTimer.GetTimerListLen() == 1 and self.size == self.maxSize):
+                time.sleep(0.5) # ждем чуть чуть чтобы ноль явно повисел
+                cr.set_font_size(self.lineHeight)  # задаем размер текста
+                cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_NORMAL)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textAttemptEnd)
-                cr.move_to(self.width / 2 - textWidth / 2,self.height / 2 + textHeight / 4)
+                cr.move_to(self.width / 2 - textWidth / 2,self.height / 2 + textHeight / 2) # рисуем посередине
                 # cr.move_to(self.width / 2 - textWidth / 2, self.height / 5)
-                cr.set_source_rgb(1, 1, 1)  # задаем цвет текста
-                cr.show_text(textAttemptEnd)  # сам текст
+                cr.set_source_rgb(1, 1, 1)
+                cr.show_text(textAttemptEnd)  # выводим текст
             else:
-                cr.show_text(str(mainTimer.currentTime[1]))  # сам текст
+                cr.show_text(str(mainTimer.currentTime[1]))  # выводим текст
 
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
-            self.size = self.height/5   # высота строки = 1/5 высоты экрана
-            cr.set_font_size(self.size) # задаем размер строки
-            cr.set_source_rgb(1,1,1)
-            # cr.move_to(self.width)
+            self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
+            self.size = self.lineHeight
+            self.maxSize = self.lineHeight*3
+            self.stepSize = self.maxSize/10 # шаг с которым будем увеличивать размер шрифта
+            cr.set_source_rgb(1,1,1)    # цвет текста - белый
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
             if(mode == finder):  # если режим ИСКАТЕЛЬ
                 if(mainTimer.GetTimerListLen() > 1):
-                    cr.set_font_size(self.size/3)
+                    cr.set_font_size(self.lineHeight/3)   # шрифт доп надписи = 1/3 строки
                     (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.height*1.5 / 5)
+                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight)   # рисуем чуть ниже первой строки
                     cr.show_text(textPreparing)
-                cr.set_font_size(self.size/2)
+                cr.set_font_size(self.lineHeight/2)   # шрифт основной надписи = 1/2 строки
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinder)
-                cr.move_to(self.width/2-textWidth/2,self.height/5)
+                cr.move_to(self.width/2-textWidth/2,self.lineHeight)  # рисуем первой строкой
                 cr.show_text(textFinder)
 
             elif(mode == extremal):    # если режим ЭКСТРЕМАЛ
                 if(mainTimer.GetTimerListLen() > 1):
-                    cr.set_font_size(self.size/3)
+                    cr.set_font_size(self.lineHeight/3)
                     (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.height*1.5 / 5)
+                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight)
                     cr.show_text(textPreparing)
-                cr.set_font_size(self.size/2)
+                cr.set_font_size(self.lineHeight/2)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremal)
-                cr.move_to(self.width/2-textWidth/2,self.height/5)
+                cr.move_to(self.width/2-textWidth/2,self.lineHeight)
                 cr.show_text(textExtremal)
 
             elif (mode == extremalPro):  # если режим ЭКСТРЕМАЛ Про
                 if (mainTimer.GetTimerListLen() > 1):
-                    cr.set_font_size(self.size/3)
+                    cr.set_font_size(self.lineHeight/3)
                     (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.height*1.5 / 5)
+                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight)
                     cr.show_text(textPreparing)
-                cr.set_font_size(self.size/2)
+                cr.set_font_size(self.lineHeight/2)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremalPro)
-                cr.move_to(self.width / 2 - textWidth / 2, self.height / 5)
+                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight/2)
                 cr.show_text(textExtremalPro)
 
             elif(mode == pause):    # если Таймер
-                cr.set_font_size(self.size/2)
+                cr.set_font_size(self.lineHeight/2)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPause)  # смотрим какую ширину/высоту будет занимать указанный текст
-                cr.move_to(self.width / 2 - textWidth / 2, self.height / 5)
+                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight)
                 cr.show_text(textPause)
             cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
 
+            # cr.set_font_size(self.size)   # шрифт доп таймеров = 1 строка
             # cr.set_source_rgb(1,0,0)    # цвет текста - красный
             # cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать
             # cr.show_text(redTimer.timeString)  # задаем текст
@@ -180,12 +184,12 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             # cr.set_source_rgb(0,1,0)    # цвет текста - зеленый
             # cr.show_text(greenTimer.timeString)
 
-            cr.set_font_size(self.size*2)   # аналогично, но у главного таймера текст в два раза больше
+            cr.set_font_size(self.lineHeight*3)   # шрифт таймера = 2 строки
             (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("00:00") # смотрим какую ширину/высоту будет занимать указанный текст
-            cr.move_to(self.width/2 - textWidth/2, self.height*2/3)
+            cr.move_to(self.width/2 - textWidth/2, self.lineHeight*3.5)
             cr.set_source_rgb(1,1,1)    # цвет текста - белый
             cr.show_text(mainTimer.timeString)
-            self.size = self.height/6
+            self.size = self.maxSize/10
 
         # self.infoSize = self.height/60  #вывод сервисной информации от пультов, высота строки совсем маленькая
         # cr.set_font_size(self.infoSize)
@@ -440,17 +444,27 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
     global mode, pause, finder, extremal
     def __init__(self):
         # задаем номера gpio для кнопок
-        self.GpioSelect = 2 # выбор режима работы
-        self.GpioStart = 3  # запуск таймера
-        self.GpioPause = 4  # пауза таймера
-        self.GpioReset = 17 # сброс таймера
+        self.GpioStart = 2  # запуск таймера
+        self.GpioPause = 3  # пауза таймера
+        self.GpioReset = 4 # сброс таймера
+        self.GpioSelect = 17 # выбор режима работы
         self.GpioEncA = 27  # установка времени с энкодера
         self.GpioEncB = 22
         self.GpioShutdown = 23  # выключение малины
-        chan_list = [self.GpioSelect,self.GpioStart,self.GpioPause,
-                     self.GpioReset,self.GpioEncA,self.GpioEncB,self.GpioShutdown]
+        chan_list = [self.GpioSelect, self.GpioStart, self.GpioPause,
+                     self.GpioReset, self.GpioShutdown]
         GPIO.setmode(GPIO.BCM)  # выбор нумерации пинов - задаем напрямую
-        GPIO.setup(chan_list,GPIO.IN)   # устанавливаем все пины на вход
+        GPIO.setup(chan_list,GPIO.IN, pull_up_down = GPIO.PUD_UP)   # устанавливаем все пины на вход с подтяжкой к питанию
+        GPIO.setup(self.GpioEncA,GPIO.IN, pull_up_down = GPIO.PUD_DOWN) # каналы энкодера также на вход, но с подтяжкой к земле
+        GPIO.setup(self.GpioEncB, GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
+        # цепляем callback функции к изменению состояния пинов
+        # применение - номер пина, что пытаемся ловить, функция - callback, сколько ждать устаканивания дребезга
+        GPIO.add_event_detect(self.GpioSelect, GPIO.FALLING, callback=self.HandlerSelect, bouncetime=100)
+        GPIO.add_event_detect(self.GpioStart, GPIO.FALLING, callbac=self.HandlerStart, bouncetime=100)
+        GPIO.add_event_detect(self.GpioPause, GPIO.FALLING, callbac=self.HandlerPause, bouncetime=100)
+        GPIO.add_event_detect(self.GpioReset, GPIO.FALLING, callbac=self.HandlerReset, bouncetime=100)
+        GPIO.add_event_detect(self.GpioShutdown, GPIO.FALLING, callbac=self.HandlerShutdown, bouncetime=100)
+        GPIO.add_event_detect(self.GpioEncA, GPIO.RISING, callbac=self.HandlerEnc, bouncetime=100)
 
         self.isRunning = False  # флаг, что мы все еще слушаем GPIO (нужен для корректного завершения потока)
         threading.Thread.__init__(self,daemon=True)
@@ -515,15 +529,15 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
 
     def HandlerEnc(self):   # функция вызывается по одному из каналов энкодера
         if GPIO.input(self.GpioEncB):   # смотрим при этом на состояние другого канала
-            min = mainTimer.GetCurrentMin()
-            min += 1
-            if min > 99: min = 99
-            mainTimer.SetTimerList([min, 0])
+            min = mainTimer.GetCurrentMin() # смотрим какое время было установлено
+            min += 1    # плюсуем минуту
+            if min > 99: min = 99   # обрезаем максимум
+            mainTimer.SetTimerList([[min, 0],]) # ставим новое время
         else:
-            min = mainTimer.GetCurrentMin()
+            min = mainTimer.GetCurrentMin() # тут аналогично, но минуту минусуем
             min -= 1
-            if(min < 0): min = 0
-            mainTimer.SetTimerList([min, 0])
+            if(min < 1): min = 1    # и не даем уйти ниже нуля
+            mainTimer.SetTimerList([[min, 0],])
 
     def Exit(self):
         print("Stopping GPIO handler...")
