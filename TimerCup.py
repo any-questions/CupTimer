@@ -49,7 +49,7 @@ extremalPro = 3     # экстремал про
 # режим по умолчанию
 mode = extremalPro
 
-textPause = "Таймер"
+textPause = "Перерыв/Тренировка/Пауза"
 textFinder = "Искатель 2.0"
 # textFinderReady = "Искатель. Подготовка"
 textExtremal = "Экстремал 1.0"
@@ -143,7 +143,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
                     cr.show_text(textPreparing)
                 cr.set_font_size(self.lineHeight/2)   # шрифт основной надписи = 1/2 строки
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinder)
-                cr.move_to(self.width/2-textWidth/2,self.lineHeight)  # рисуем первой строкой
+                cr.move_to(self.width/2-textWidth/2,self.lineHeight/2)  # рисуем первой строкой
                 cr.show_text(textFinder)
 
             elif(mode == extremal):    # если режим ЭКСТРЕМАЛ
@@ -154,7 +154,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
                     cr.show_text(textPreparing)
                 cr.set_font_size(self.lineHeight/2)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremal)
-                cr.move_to(self.width/2-textWidth/2,self.lineHeight)
+                cr.move_to(self.width/2-textWidth/2,self.lineHeight/2)
                 cr.show_text(textExtremal)
 
             elif (mode == extremalPro):  # если режим ЭКСТРЕМАЛ Про
@@ -171,7 +171,7 @@ class MainWindow(Gtk.Window): # класс основного окна с тре
             elif(mode == pause):    # если Таймер
                 cr.set_font_size(self.lineHeight/2)
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPause)  # смотрим какую ширину/высоту будет занимать указанный текст
-                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight)
+                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight/2)
                 cr.show_text(textPause)
             cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_NORMAL)  # выставляем параметры шрифта
 
