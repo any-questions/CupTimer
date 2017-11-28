@@ -261,9 +261,12 @@ class TimerClass(threading.Thread):
             if not self.isPaused:  # если таймер не на паузе
 
                 self.currentTime[1] -= 1    # вычитаем одну секунду
-                if self.currentTime[1] < 0:    # если секунды кончились
-                    self.currentTime[1] = 59    # переписываем секунды
-                    self.currentTime[0] -= 1    # вычитаем минуту
+                if self.currentTime[1] < 0:     # если секунды кончились
+                    if self.currentTime[0] > 0:     # а минуты еще остались
+                        self.currentTime[1] = 59    # переписываем секунды
+                        self.currentTime[0] -= 1    # вычитаем минуту
+                    else:
+                        self.currentTime[1] = 0
                     if self.currentTime[0] < 0:
                         self.currentTime[0] = 0
 
@@ -617,10 +620,10 @@ class EncoderCounter(threading.Thread):
     def __init__(self):
         self.GpioEncA = 27  # установка времени с энкодера
         self.GpioEncB = 22
+        print("Creating encoder listener...")
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.GpioEncA, GPIO.IN)
         GPIO.setup(self.GpioEncB, GPIO.IN)
-
         self.isRunning = False
         self.counter = 0
         self.encAprev = GPIO.input(self.GpioEncA)
