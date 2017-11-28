@@ -49,9 +49,6 @@ $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 
 Добавить строчки
-
 @xset s noblank
-
 @xset s off
-
 @xset -dpms 
