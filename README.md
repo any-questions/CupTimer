@@ -15,6 +15,8 @@
 **Установка шрифтов:**  
 1. Скопировать новый шрифт в формате *.ttf или *.otf в папку /usr/local/share/fonts  
 2. Раздать ему права ```$ sudo chmod 644 *имя файла*```  
+
+
 **Добавление программы с GUI в автозапуск**  
 (Подробнее http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui)  
 1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```
@@ -29,6 +31,8 @@
 **Чтобы отключить выключение экрана с течением времени:**  
 1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```  
 2. Добавить строчки  
-```@xset s noblank  
+```
+@xset s noblank  
 @xset s off  
-@xset -dpms```
+@xset -dpms
+```
