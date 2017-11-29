@@ -1,8 +1,7 @@
 # CupTimer
 Проект таймера для кубка ртк для Raspberry pi
 
-Установка simpleaudio (для проигрывания звуков):
-
+### Установка simpleaudio (для проигрывания звуков):
 $ sudo pip3 install simpleaudio
 
 Установка cobs (для декодирования сообщений):
@@ -54,4 +53,4 @@ $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 
 @xset s off
 
-@xset -dpms 
+@xset -dpms
