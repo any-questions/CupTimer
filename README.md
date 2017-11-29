@@ -21,8 +21,7 @@
 2. Раздать ему права ```$ sudo chmod 644 *имя файла*```  
 
 
-**Добавление программы с GUI в автозапуск**  
-(Подробнее http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui)  
+**Добавление программы с GUI в автозапуск** ([подробнее](http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui))  
 1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```
 2. Добавить в конец строчку с путем к файлу, например:  
 ```@/home/pi/CupTimer/TimerCup.py```  
@@ -40,5 +39,14 @@
 ```
 @xset s noblank  
 @xset s off  
-@xset -dpms
+@xset -dpms  
 ```
+
+**Чтобы настроить HDMI выход** ([подробнее](http://wikihandbk.com/wiki/Raspberry_Pi:%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0/config.txt#HDMI_DRIVE))  
+1. ```sudo nano /boot/config.txt```  
+2. Раскомментировать (или дописать) следующие строчки:  
+```hdmi_force_hotplug=1``` - видео будет отправляться в HDMI, даже если монитор еще не подключен  
+```hdmi_drive=2``` - звук также отправляется в HDMI  
+```hdmi_group=1``` - подключаемся к телевизору (0 - автоопределение, 2 - к монитору)  
+```hdmi_mode=4``` - 720p 60 fps
+

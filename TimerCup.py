@@ -7,6 +7,9 @@ import simpleaudio as sa  # для аудио
 import cairo        # для визуальных эффектов
 import cobs         # для декодирования сообщений из uart
 import os           # чтобы иметь возможность слать команды os
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Pango, GLib, Gdk
+
 try:
     import RPi.GPIO as GPIO  # для работы с GPIO
     gpio = True
@@ -14,8 +17,7 @@ try:
 except:
     print("Error importing RPi.GPIO!")
     gpio = False
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Pango, GLib, Gdk
+
 
 ###################################################################################
 '''
@@ -92,7 +94,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         self.get_window().set_cursor(cursor)
         self.currentTime = [0, 0]
 
-        ####служебные переменные
+        # служебные переменные
         self.width = 0
         self.height = 0
         self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
@@ -131,7 +133,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
 
             # если дотикал до конца таймер попытки - выводим соответствующий текст
             if(self.currentTime[0] == 0 and self.currentTime[1] == 0 and
-                       mainTimer.GetTimerListLen() == 1 and self.size == self.maxSize):
+                    mainTimer.GetTimerListLen() == 1 and self.size == self.maxSize):
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
                 cr.set_font_size(self.lineHeight)  # задаем размер текста
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -301,7 +303,7 @@ class TimerClass(threading.Thread):
         eventAirHorn.set()
         self.Update()
 
-    def SetTimerList(self,timerList):   # функция задания нового списка таймеров
+    def SetTimerList(self, timerList):   # функция задания нового списка таймеров
         self.isPaused = True    # на всякий случай ставим на паузу
         self.timerList = timerList
         self.currentTime = [self.timerList[0][0], self.timerList[0][1]]
@@ -667,8 +669,8 @@ mainWindow = MainWindow()  # создаем объект класса главн
 gtkRunner = GtkRunner()
 
 # создаем таймеры, минуты, секунды, какой таймер
-redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
-greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
+# redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
+# greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
 mainTimer = TimerClass([[3, 0], [10, 0]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
