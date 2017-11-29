@@ -42,6 +42,7 @@ $ sudo apt install python3-cairo python3-gi-cairo
 ## Чтобы отключить выключение экрана с течением времени:
 1. $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 2. Добавить строчки
+
 > @xset s noblank
 > @xset s off
 > @xset -dpms
