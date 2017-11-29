@@ -2,26 +2,27 @@
 Проект таймера для кубка ртк для Raspberry pi
 
 ## Установка simpleaudio (для проигрывания звуков):
-$ sudo pip3 install simpleaudio
+> $ sudo pip3 install simpleaudio
 
 ## Установка cobs (для декодирования сообщений):
-$ sudo pip3 install cobs
+> $ sudo pip3 install cobs
 
 ## Установка RPi.GPIO (для работы с gpio на raspberry pi)
 ### Для ubuntu:
 
-$ sudo pip3 install RPi.GPIO
+> $ sudo pip3 install RPi.GPIO
 ### Для raspbian также, или:
 
-$ sudo apt install python3-rpi.gpio
+> $ sudo apt install python3-rpi.gpio
 
 ## Установка cairo (для отрисовки графики):
 
-$ sudo apt install python3-cairo python3-gi-cairo
+> $ sudo apt install python3-cairo python3-gi-cairo
 
 ## Установка шрифтов:
 1. Скопировать новый шрифт в формате *.ttf или *.otf в папку /usr/local/share/fonts
 2. Раздать ему права
+
 > $ sudo chmod 644 *имя файла*
 
 ## Добавление программы с GUI в автозапуск
@@ -29,6 +30,7 @@ $ sudo apt install python3-cairo python3-gi-cairo
 
 1. $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 2. Добавить в конец строчку с путем к файлу, например:
+
 > @/home/pi/CupTimer/TimerCup.py
 
 ## Чтобы скрыть предупреждение ssh, о том что пароль стоит стандартный
@@ -43,6 +45,7 @@ $ sudo apt install python3-cairo python3-gi-cairo
 1. $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 2. Добавить строчки
 
-> @xset s noblank
-> @xset s off
-> @xset -dpms
+
+- > @xset s noblank
+- > @xset s off
+- > @xset -dpms
