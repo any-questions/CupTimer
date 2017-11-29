@@ -21,8 +21,7 @@
 2. Раздать ему права ```$ sudo chmod 644 *имя файла*```  
 
 
-**Добавление программы с GUI в автозапуск**  
-(Подробнее http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui)  
+**Добавление программы с GUI в автозапуск** ([подробнее](http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui))  
 1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```
 2. Добавить в конец строчку с путем к файлу, например:  
 ```@/home/pi/CupTimer/TimerCup.py```  
