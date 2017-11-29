@@ -1,51 +1,46 @@
 # CupTimer
 Проект таймера для кубка ртк для Raspberry pi
 
-### Установка simpleaudio (для проигрывания звуков):
+## Установка simpleaudio (для проигрывания звуков):
 $ sudo pip3 install simpleaudio
 
-Установка cobs (для декодирования сообщений):
-
+## Установка cobs (для декодирования сообщений):
 $ sudo pip3 install cobs
 
-Установка RPi.GPIO (для работы с gpio на raspberry pi)
-Для ubuntu:
+## Установка RPi.GPIO (для работы с gpio на raspberry pi)
+### Для ubuntu:
 
 $ sudo pip3 install RPi.GPIO
-Для raspbian также, или:
+### Для raspbian также, или:
 
 $ sudo apt install python3-rpi.gpio
 
-Установка cairo (для отрисовки графики):
+## Установка cairo (для отрисовки графики):
 
 $ sudo apt install python3-cairo python3-gi-cairo
 
+## Установка шрифтов:
+1. Скопировать новый шрифт в формате *.ttf или *.otf в папку /usr/local/share/fonts
+2. Раздать ему права
+> $ sudo chmod 644 *имя файла*
 
-Установка шрифтов:
-Скопировать новый шрифт в формате *.ttf или *.otf в папку /usr/local/share/fonts,
-раздать ему права 
+## Добавление программы с GUI в автозапуск
+(Подробнее http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui)
 
-$ sudo chmod 644 *имя файла*
+1. $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
+2. Добавить в конец строчку с путем к файлу, например:
+> @/home/pi/CupTimer/TimerCup.py
 
-Добавление программы в автозапуск (Подробнее http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui)
+## Чтобы скрыть предупреждение ssh, о том что пароль стоит стандартный
+### Отключить warning не появлялся в терминале, когда подключаешься по ssh через терминал
+Удалить файл /etc/profile.d/sshpwd.sh
+### Отключить warning на рабочем столе при загрузке
+Удалить файл /home/pi/.config/lxsession/LXDE-pi/sshpwd.sh
 
-$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
+**(файлы можно не удалять, а закоментировать часть отвечающую за вывод)**
 
-Добавить в конец строчку с путем к файлу, например
-
-@/home/pi/CupTimer/TimerCup.py
-
-Чтобы скрыть предупреждение ssh, о том что пароль стоит стандартный,
-
-удалить файл /etc/profile.d/sshpwd.sh - чтобы warning не появлялся в терминале, когда логинишься
-
-удалить файл /home/pi/.config/lxsession/LXDE-pi/sshpwd.sh - чтобы не появлялся warning на рабочем столе при загрузке
-
-(можно не удалять, а закоментировать часть отвечающую за вывод)
-
-Чтобы отключить выключение экрана с течением времени:
-
-$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
+## Чтобы отключить выключение экрана с течением времени:
+1. $ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
 
 Добавить строчки
 
