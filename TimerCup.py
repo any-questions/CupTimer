@@ -22,26 +22,29 @@ except:
 ###################################################################################
 '''
 Принцип работы таймера:
-Используется кнопка Select для выбора режима работы таймера;
-Кнопка Start - запускай таймер;
+Кнопка Select используется для выбора режима работы таймера;
+Кнопка Start - запускает таймер (или досрочно его завершает);
 Кнопка Pause - ставит/снимает таймер с паузы;
 Кнопка Reset - сбрасывает таймер в зависимости от режима;
-Кнопка Выкл - выключает компьютер полностью;
+Кнопка Выкл (Shutdown) - выключает компьютер полностью;
 Поворотная ручка используется для задания времени таймера.
-Таймер может работать в трех режимах: искатель, экстремал, просто обратный отсчет.
+Таймер может работать в нескольких режимах: искатель, экстремал, экстремал про, просто обратный отсчет.
 
 В режиме ИСКАТЕЛЬ, при нажатии на кнопку Start - начинается обратный отсчет 3 минуты на подготовку,
 потом сразу начинается попытка - 10 минут.
 Повторное нажатие на кнопку Start до окончания времени на подготовку сразу запускает попытку на 10 минут.
+Следующее нажатие на кнопку Start до окончании времени завершает попытку.
 
 В режиме ЭКСТРЕМАЛ и ЭКСТРЕМАЛ Pro, при нажатии на кнопку Start - начинается обраатный отсчет 7 минут на подготовку,
 потом сразу начинается попытка - 10 минут.
 Повторное нажатие на кнопку Start до окончания времени на подготовку сразу запускает попытку на 10 минут.
+Следующее нажатие на кнопку Start до окончании времени завершает попытку.
 
 В режиме ОБРАТНОГО ОТСЧЕТА время задается при помощи поворотной ручки с шагом в минуту, после чего при нажати на кнопку
 Start начинается обратный отсчет до нуля. Повторное нажатие на кнопку Start досрочно останавливает таймер.
 
-При изменении режима работы таймера - отсчет останавливается в любом случае.
+Изменение режима работы таймера, сброс таймера, а также выключение доступны только если обратный отсчет не идет, т.е.
+во время обратного отсчета (любого) кнопки Select, Reset, Shutdown неактивны.
 '''
 ####################################################################################
 # режимы таймера (нужны только чтобы писать корректный текст)
@@ -62,7 +65,6 @@ textExtremalPro = "Экстремал Pro 1.0"
 textPreparing = "Подготовка"
 textAttemptEnd = "Попытка закончена"
 
-
 pattern = '{0:02d}:{1:02d}'     # формат вывода строки
 
 eventShortBeep = threading.Event()  # события, которыми будем вызывать проигрывание аудио
@@ -71,13 +73,13 @@ eventHighBeep = threading.Event()
 eventLowBeep = threading.Event()
 eventAirHorn = threading.Event()
 
+shutdownFlag = False    # флаг, что raspberry надо выключить
 
 class MainWindow(Gtk.Window):   # класс основного окна с тремя таймерами
     global mode, pause, finder, extremal
 
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
-        
         self.set_title("Timer")     # заголовок окна
         # self.set_size_request(800,600)
         self.fullscreen()   # растягиваем на весь экран
@@ -101,6 +103,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         self.maxSize = self.lineHeight * 3
         self.stepSize = self.maxSize / 10  # шаг с которым будем увеличивать размер шрифта
         self.size = self.maxSize / 10
+        print("Main window is created")
 
     def on_timer(self):
         if not self.isRunning:
@@ -256,6 +259,7 @@ class TimerClass(threading.Thread):
         self.isRunning = False  # флаг, чтобы тред работал
         self.isPaused = True    # флаг, чтобы ставить таймер на паузу
         self.finalCountdown = False     # флаг, что идет отсчет последних 5 секунд
+        print(timer,"timer is created")
         threading.Thread.__init__(self)
 
     def Update(self):   # функция обновления таймера
@@ -293,10 +297,10 @@ class TimerClass(threading.Thread):
                         eventLowBeep.set()      # пищим одним тоном
                     else:                       # если у других таймеров
                         eventShortBeep.set()    # другим тоном
-
                 # записываем время в паттерн
                 # self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])
                 time.sleep(1)   # останавливаем тред на секунду
+        print(self.timer,"timer stopped")
 
     def run(self):  # функция для запуска треда
         self.isRunning = True
@@ -328,6 +332,7 @@ class TimerClass(threading.Thread):
             self.isPaused = False
 
     def Exit(self):     # завершить тред
+        # print("Stopping",self.timer,"timer...")
         self.isRunning = False
 
     def GetCurrentMin(self):    # возвращает число минут которые осталось дотикать
@@ -352,19 +357,19 @@ class TimerClass(threading.Thread):
 class PlayMusic(threading.Thread):  # класс для воспроизведения мелодий
     def __init__(self):
         dirpath = os.getcwd()   # получаем расположение текущей папки
-        print("current directory is:", dirpath)
+        print("Сurrent directory is:", dirpath)
         foldername = os.path.basename(dirpath)  # получаем имя текущей папки
-        print("current folder is:", foldername)
+        print("Сurrent folder is:", foldername)
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
-            print("FilePath: sounds/*.wav")
+            print("Path to audio: sounds/*.wav")
             self.short_beep = sa.WaveObject.from_wave_file("sounds/short_beep.wav")
             self.long_beep = sa.WaveObject.from_wave_file("sounds/long_beep.wav")
             self.low_beep = sa.WaveObject.from_wave_file("sounds/low_beep.wav")
             self.high_beep = sa.WaveObject.from_wave_file("sounds/high_beep.wav")
             self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
         else:
-            print("FilePath:"+dirpath+"/CupTimer/sounds/*.wav")
+            print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
             self.short_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/short_beep.wav")
             self.long_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/long_beep.wav")
             self.low_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/low_beep.wav")
@@ -373,6 +378,7 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
 
         self.isRunning = False
         threading.Thread.__init__(self)     # наследование функций треда
+        print("Audio player is created")
 
     def __del__(self):  # деструктор останавливает флаг
         self.isRunning = False
@@ -398,38 +404,11 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             elif eventAirHorn.isSet():      # стартовый горн
                 eventAirHorn.clear()
                 self.horn.play()
-        print("Music stopped")
+        print("Audio player stopped")
 
     def Exit(self):
-        print("Stopping music...")
+        # print("Stopping music...")
         self.isRunning = False
-
-
-def CloseProgram(w):    # при закрытии программы останавливаем таймеры и закрываем окно
-    print("Stopping timers...")
-    try:
-        mainTimer.Exit()
-    except:
-        print("No main timer")
-    try:
-        redTimer.Exit()
-    except:
-        print("No red timer")
-    try:
-        greenTimer.Exit()
-    except:
-        print("No green timer")
-    player.Exit()
-    eventShortBeep.clear()
-    eventLongBeep.clear()
-    eventHighBeep.clear()
-    eventLowBeep.clear()
-    eventAirHorn.clear()
-    # pult.Exit()
-    print("Closing window...")
-    Gtk.main_quit()
-    gpioHandler.Exit()
-    print("Program closed.")
 
 ###
 '''
@@ -556,18 +535,20 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
         GPIO.add_event_detect(self.GpioStart, GPIO.FALLING, callback=self.HandlerStart, bouncetime=200)
         GPIO.add_event_detect(self.GpioPause, GPIO.FALLING, callback=self.HandlerPause, bouncetime=200)
         GPIO.add_event_detect(self.GpioReset, GPIO.FALLING, callback=self.HandlerReset, bouncetime=200)
-        # GPIO.add_event_detect(self.GpioShutdown, GPIO.FALLING, callback=self.HandlerShutdown, bouncetime=200)
+        GPIO.add_event_detect(self.GpioShutdown, GPIO.FALLING, callback=self.HandlerShutdown, bouncetime=200)
         self.isRunning = False  # флаг, что мы все еще слушаем GPIO (нужен для корректного завершения потока)
+        print("GPIO handler is created")
         threading.Thread.__init__(self, daemon=True)
 
-    def HandlerShutdown(self, channel):
-        CloseProgram()
-        # TODO: проверить будет ли выполняться что то после вызова Close Program
-        print("Goodbye")
-        # os.system("sudo shutdown -h now")
+    def HandlerShutdown(self, channel):     # обработка нажатия на кнопку выключения
+        global shutdownFlag
+        if mainTimer.GetIsPaused():     # программу можно завершить, только если таймер ничего не считает
+            print("Closing programm...")
+            shutdownFlag = True     # поднимаем флаг, что raspberry нужно будет выключить
+            CloseProgram(0)         # закрываем программу
 
     def HandlerStart(self, channel):    # обработка нажатия на кнопку Start
-        print("Start countdown", channel)
+        print("Start countdown")
         if mainTimer.GetIsPaused():     # если таймер был остановлен - запускаем его
             mainTimer.Resume()
         else:   # если уже тикал - принудительно завершаем чтобы перейти к следующему
@@ -575,98 +556,134 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
 
     def HandlerSelect(self, channel):   # обработка выбора режима
         global mode
-        mainTimer.Pause()   # ставим таймер на паузу на всякий случай
-        mode += 1   # выбираем следующий режим
-        if mode == finder:  # если он стал искатель
-            print("Finder")
-            mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
-        elif mode == extremal:     # если стал экстремал
-            print("Extremal")
-            mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-        elif mode == extremalPro:  # если стал экстремал про
-            print("Extremal Pro")
-            mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-        elif mode > 3:
-            print("Countdown")  # если просто обратный отсчет
-            mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 0
-            mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
+        if mainTimer.GetIsPaused():     # менять режим работы можно только если отсчет не идет
+            mode += 1   # выбираем следующий режим
+            if mode == finder:  # если он стал искатель
+                print("Finder")
+                mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
+            elif mode == extremal:     # если стал экстремал
+                print("Extremal")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            elif mode == extremalPro:  # если стал экстремал про
+                print("Extremal Pro")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            elif mode > 3:
+                print("Countdown")  # если просто обратный отсчет
+                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 0
+                mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
 
     def HandlerPause(self, channel):    # обработка нажатия на кнопку Pause
-        print("Pause", channel)
+        print("Pause")
         if mainTimer.GetIsPaused():     # если таймер стоял на паузе - запускаем его, и наоборот
             mainTimer.Resume()
         else:
             mainTimer.Pause()
 
     def HandlerReset(self, channel):    # обработка нажатия на кнопку Reset
-        if mode == pause:   # смотрим какой стоял режим работы и ставим его параметры по умолчанию
-            print("Reset pause")
-            mainTimer.SetTimerList([[10, 0], ])  # по умолчанию это один таймер на 10 минут и все
-        if mode == finder:
-            print("Reset finder")
-            mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
-        if mode == extremal:
-            print("Reset extremal")
-            mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-        if mode == extremalPro:
-            print("Reset extremal pro")
-            mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+        if mainTimer.GetIsPaused():     # сброс доступен только если таймер не считает
+            if mode == pause:   # смотрим какой стоял режим работы и ставим его параметры по умолчанию
+                print("Reset pause")
+                mainTimer.SetTimerList([[10, 0], ])  # по умолчанию это один таймер на 10 минут и все
+            if mode == finder:
+                print("Reset finder")
+                mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
+            if mode == extremal:
+                print("Reset extremal")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            if mode == extremalPro:
+                print("Reset extremal pro")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
 
     def Exit(self):
-        print("Stopping GPIO handler...")
+        # print("Stopping GPIO handler...")
         self.isRunning = False
         GPIO.cleanup()
+        print("GPIO handler stopped")
+
+##############
+'''
+Класс читающий показания энкодера в отдельном потоке. Работает непрерывно, считывает состояние каналов энкодера
+около 1000 раз в секунду. Работает только в режиме просто обратного отсчета.
+'''
+##############
 
 
 class EncoderCounter(threading.Thread):
     def __init__(self):
-        self.GpioEncA = 27  # установка времени с энкодера
+        self.GpioEncA = 27  # пины - каналы энкодера
         self.GpioEncB = 22
-        print("Creating encoder listener...")
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.GpioEncA, GPIO.IN)
+        GPIO.setup(self.GpioEncA, GPIO.IN)  # устанавливаем пины на вход
         GPIO.setup(self.GpioEncB, GPIO.IN)
-        self.isRunning = False
-        self.counter = 0
-        self.encAprev = GPIO.input(self.GpioEncA)
+        self.isRunning = False  # флаг для корректного завершения треда
+        self.encAprev = GPIO.input(self.GpioEncA)   # записываем начальные состояния каналов
         self.encA = GPIO.input(self.GpioEncA)
         self.encB = GPIO.input(self.GpioEncB)
+        print("Encoder handler is created")
         threading.Thread.__init__(self, daemon=True)
 
-    def Update(self):
+    def Update(self):   # функция, которая читает состояние энкодера
         while self.isRunning:
-            self.encA = GPIO.input(self.GpioEncA)
+            self.encA = GPIO.input(self.GpioEncA)   # считываем новые состояния
             self.encB = GPIO.input(self.GpioEncB)
-            if mode == pause:
-                if self.encA != self.encAprev:
-                    if self.encB != self.encA:
-                        # self.counter += 1
+            # изменяем что-то, только если таймер не запущен и в нужном режиме
+            if mode == pause and mainTimer.GetIsPaused():
+                if self.encA != self.encAprev:  # если изменилось состояние на первом канале
+                    if self.encB != self.encA:  # и оно не совпадает со второым каналом
                         min = mainTimer.GetCurrentMin() # смотрим какое время было установлено
                         min += 1    # плюсуем минуту
                         if min > 99: min = 99   # обрезаем максимум
                         mainTimer.SetTimerList([[min, 0], ]) # ставим новое время
-                    else:
-                        # self.counter -= 1
+                    else:   # если совпадает со вторым каналом
                         min = mainTimer.GetCurrentMin() # тут аналогично, но минуту минусуем
                         min -= 1
                         if min < 1: min = 1    # и не даем уйти ниже нуля
-                        mainTimer.SetTimerList([[min, 0],])
-                self.encAprev = self.encA
-            time.sleep(0.0001)
-        print("Encoder listener stopped")
+                        mainTimer.SetTimerList([[min, 0], ])
+                self.encAprev = self.encA   # записываем новое "предыдущее" состояние первого канала
+            time.sleep(0.001)   # засыпаем
+        print("Encoder handler stopped")
 
     def run(self):
         self.isRunning = True
-        print("Starting encoder listener")
         self.Update()
 
-    def Exit(self):
-        print("Stopping encoder listener...")
+    def Exit(self):     # закрытие треда
+        # print("Stopping encoder listener...")
         self.isRunning = False
 
+def CloseProgram(w):    # при закрытии программы останавливаем таймеры и закрываем окно
+    global shutdownFlag
 
-mainWindow = MainWindow()  # создаем объект класса главного окна
-gtkRunner = GtkRunner()
+    try:
+        mainTimer.Exit()    # закрываем таймеры
+    except:
+        print("No main timer to stop")
+    try:
+        redTimer.Exit()
+    except:
+        print("No red timer to stop")
+    try:
+        greenTimer.Exit()
+    except:
+        print("No green timer to stop")
+    player.Exit()   # закрываем воспроизведение музыки
+    eventShortBeep.clear()  # очищаем все события
+    eventLongBeep.clear()
+    eventHighBeep.clear()
+    eventLowBeep.clear()
+    eventAirHorn.clear()
+    # pult.Exit()
+    # print("Closing window...")
+    Gtk.main_quit()     # закрываем графическое окно
+    encoderHandler.Exit()   # закрываем опрос энкодера
+    gpioHandler.Exit()  # очищаем GPIO
+    print("Program closed")
+    if shutdownFlag is True:
+        print("Goodbye")
+        os.system("sudo shutdown -h now")  # выключаем raspberry pi
+
+mainWindow = MainWindow()   # создаем объект класса главного окна
+gtkRunner = GtkRunner()     # объект для запуска GTK в отдельном потоке
 
 # создаем таймеры, минуты, секунды, какой таймер
 # redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
@@ -677,12 +694,12 @@ player = PlayMusic()    # создаем объект класса проигр�
 
 # pult = PultHandler()    # создаем обработчик пульта
 
-if gpio:
+if gpio:    # если есть GPIO
     gpioHandler = GpioHandler()     # обработчик нажатий на кнопки
-    encoderHandler = EncoderCounter()
+    encoderHandler = EncoderCounter()   # и энкодера
     encoderHandler.start()
 
-gtkRunner.start()   # запускаем гтк
+gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
 # mainTimer.Resume()
 player.start()  # запускаем проигрыватель музыки
