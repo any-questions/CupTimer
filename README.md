@@ -1,5 +1,13 @@
 # CupTimer
-Проект таймера для кубка ртк для Raspberry pi
+Проект таймера на кубок РТК для Raspberry Pi.  
+Подключение кнопок:  
+- GPIO4 - Start  
+- GPIO3 - Pause  
+- GPIO2 - Reset  
+- GPIO17 - Select  
+- GPIO23 - Shutdown  
+- GPIO27 - Канал энкодера А  
+- GPIO22 - Канал энкодера B  
 
 **Установка simpleaudio (для проигрывания звуков):**  
 ```$ sudo pip3 install simpleaudio```  
@@ -28,9 +36,9 @@
 
 **Чтобы скрыть предупреждение ssh, о том что пароль стоит стандартный**  
 Чтобы отключить warning в терминале, когда подключаешься по ssh:  
-- удалить файл /etc/profile.d/sshpwd.sh  
+- удалить файл ```/etc/profile.d/sshpwd.sh```  
 Чтобы отключить warning на рабочем столе при загрузке  
-- Удалить файл /home/pi/.config/lxsession/LXDE-pi/sshpwd.sh  
+- Удалить файл ```/home/pi/.config/lxsession/LXDE-pi/sshpwd.sh```  
 файлы можно не удалять, а закоментировать часть отвечающую за вывод)  
 
 **Чтобы отключить выключение экрана с течением времени:**  
