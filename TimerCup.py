@@ -313,8 +313,6 @@ class TimerClass(threading.Thread):
                 if self.currentTime[0] == 0 and self.currentTime[1] == 0:   # если дотикали до нуля
                     if self.timer == 'main':    # если остановился главный таймер
                         eventGong2.set()  # пищим одним тоном
-                    # else:   # если любой другой таймер
-                    #     eventHighBeep.set()     # пищим другим тоном
 
                     if len(self.timerList) > 1:     # если еще остались таймеры, которые нужно дотикать
                         self.timerList.pop(0)       # убираем из списка тот, который кончился
@@ -325,21 +323,13 @@ class TimerClass(threading.Thread):
                     else:
                         self.isPaused = True    # если это был последний таймер - останавливаем отсчет
 
-                elif self.currentTime[0] == 0 and self.currentTime[1] <= 5:  # если осталось тикать 5 секунд
+                elif self.currentTime[0] == 0 and self.currentTime[1] <= 10:  # если осталось тикать 5 секунд
                     self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
-                    # if self.timer == 'main':   # если отсчет у главного таймера
-                    #     eventBeep.set()      # пищим одним тоном
-                #     else:                       # если у других таймеров
-                #         eventShortBeep.set()    # другим тоном
-                # записываем время в паттерн
-                # self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])
                 time.sleep(1)   # останавливаем тред на секунду
         print(self.timer,"timer stopped")
 
     def run(self):  # функция для запуска треда
         self.isRunning = True
-        #TODO: убрать, когда закончим тестирование
-        # eventGong2.set()
         self.Update()
 
     def SetTimerList(self, timerList):   # функция задания нового списка таймеров
@@ -630,8 +620,7 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
                 mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
             elif mode == extremalPro:  # если стал экстремал про
                 print("Extremal Pro")
-                # TODO: Исправить обратно, когда закончим тестирование
-                mainTimer.SetTimerList([[0, 10], [0, 12]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
             elif mode > 3:
                 print("Countdown")  # если просто обратный отсчет
                 mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 0
@@ -760,7 +749,6 @@ gtkRunner = GtkRunner()     # объект для запуска GTK в отде
 # создаем таймеры, минуты, секунды, какой таймер
 # redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
 # greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
-# TODO: исправить, когда закончим тестироваие
 mainTimer = TimerClass([[3, 0], [10, 0]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
@@ -775,8 +763,7 @@ if gpio:    # если есть GPIO
 gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
 player.start()  # запускаем проигрыватель музыки
-# TODO: убрать, когда закончим тестирование
-# mainTimer.Resume()
+
 # redTimer.start()
 # greenTimer.start()
 # pult.start()    # запускаем обработчик пульта
