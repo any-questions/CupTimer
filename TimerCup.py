@@ -69,10 +69,11 @@ textAdditional = "Пауза"    # когда таймер ставим на п�
 
 pattern = '{0:02d}:{1:02d}'     # формат вывода строки
 
-eventShortBeep = threading.Event()  # события, которыми будем вызывать проигрывание аудио
-eventLongBeep = threading.Event()
-eventHighBeep = threading.Event()
-eventLowBeep = threading.Event()
+eventBeep = threading.Event()  # события, которыми будем вызывать проигрывание аудио
+eventBleep = threading.Event()
+eventGong1 = threading.Event()
+eventGong2 = threading.Event()
+eventGongLaugh = threading.Event()
 eventAirHorn = threading.Event()
 
 shutdownFlag = False    # флаг, что raspberry надо выключить
@@ -133,22 +134,28 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
 
-        if mainTimer.finalCountdown is True and not mode == pause:   # если тикают последние 5 секунд главного таймера
-            self.size += self.stepSize   # постепенно увеличиваем размер
-            if self.currentTime[1] == self.prevTime - 1:  # если значение секунды сменилось
-                self.prevTime = self.currentTime[1]    # фиксируем новое значение времени
-                self.size = self.maxCountDownSize/10  # возвращаем значения размера шрифта
-            if self.size >= self.maxSize: self.size = self.maxSize  # ограничиваем максимальный размер шрифта
-            cr.set_font_size(self.size)   # задаем размер текста
+        if mainTimer.finalCountdown is True and not mode == pause and mainTimer.GetTimerListLen() == 1:   # если тикают последние 5 секунд главного таймера
+            self.size = self.maxCountDownSize
+            cr.set_font_size(self.size)
+            cr.set_source_rgb(1, 0, 0)
+            (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("00:00")
+            cr.move_to(self.width/2 - textWidth/2, self.height/2 + textHeight/2)
+
+            # self.size += self.stepSize   # постепенно увеличиваем размер
+            # if self.currentTime[1] == self.prevTime - 1:  # если значение секунды сменилось
+            #     self.prevTime = self.currentTime[1]    # фиксируем новое значение времени
+            #     self.size = self.maxCountDownSize/10  # возвращаем значения размера шрифта
+            # if self.size >= self.maxSize: self.size = self.maxSize  # ограничиваем максимальный размер шрифта
+            # cr.set_font_size(self.size)   # задаем размер текста
             # смотрим какую ширину/высоту будет занимать указанный текст
-            (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("0")
+            # (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("0")
             # перемещаем курсор туда где будем рисовать (середина экрана)
-            cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/2)
-            cr.set_source_rgb(1, 1, 1)    # задаем цвет текста
+            # cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/2)
+            # cr.set_source_rgb(1, 1, 1)    # задаем цвет текста
 
             # если дотикал до конца таймер попытки - выводим соответствующий текст
             if(self.currentTime[0] == 0 and self.currentTime[1] == 0 and
-                    mainTimer.GetTimerListLen() == 1 and self.size == self.maxSize):
+                    mainTimer.GetTimerListLen() == 1 and self.size > self.maxSize):
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
                 cr.set_font_size(self.lineHeight)  # задаем размер текста
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -158,7 +165,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
                 cr.set_source_rgb(1, 1, 1)
                 cr.show_text(textAttemptEnd)  # выводим текст
             else:
-                cr.show_text(str(self.currentTime[1]))  # выводим текст
+                # if self.counter//5 != 0:
+                cr.show_text(mainTimer.GetTimer())
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
             self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
@@ -223,7 +231,10 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
             # смотрим какую ширину/высоту будет занимать указанный текст
             (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("00:00")
             cr.move_to(self.width/2 - textWidth/2, self.lineHeight*3.5)
-            cr.set_source_rgb(1, 1, 1)    # цвет текста - белый
+            if mainTimer.finalCountdown is True:
+                cr.set_source_rgb(1, 0, 0)
+            else:
+                cr.set_source_rgb(1, 1, 1)    # цвет текста - белый
             cr.show_text(mainTimer.GetTimer())
             self.size = self.maxSize/10
 
@@ -235,8 +246,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
                 cr.set_source_rgb(1, 1, 1)
                 cr.show_text(textAdditional)
 
-            self.counter += 1
-            if self.counter > 9: self.counter = 0
+        self.counter += 1
+        if self.counter > 9: self.counter = 0
 
             # self.infoSize = self.height/60  #вывод сервисной информации от пультов, высота строки совсем маленькая
         # cr.set_font_size(self.infoSize)
@@ -301,9 +312,9 @@ class TimerClass(threading.Thread):
 
                 if self.currentTime[0] == 0 and self.currentTime[1] == 0:   # если дотикали до нуля
                     if self.timer == 'main':    # если остановился главный таймер
-                        eventAirHorn.set()  # пищим одним тоном
-                    else:   # если любой другой таймер
-                        eventHighBeep.set()     # пищим другим тоном
+                        eventGong2.set()  # пищим одним тоном
+                    # else:   # если любой другой таймер
+                    #     eventHighBeep.set()     # пищим другим тоном
 
                     if len(self.timerList) > 1:     # если еще остались таймеры, которые нужно дотикать
                         self.timerList.pop(0)       # убираем из списка тот, который кончился
@@ -316,8 +327,8 @@ class TimerClass(threading.Thread):
 
                 elif self.currentTime[0] == 0 and self.currentTime[1] <= 5:  # если осталось тикать 5 секунд
                     self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
-                #     if self.timer == 'main':   # если отсчет у главного таймера
-                #         eventLowBeep.set()      # пищим одним тоном
+                    # if self.timer == 'main':   # если отсчет у главного таймера
+                    #     eventBeep.set()      # пищим одним тоном
                 #     else:                       # если у других таймеров
                 #         eventShortBeep.set()    # другим тоном
                 # записываем время в паттерн
@@ -327,7 +338,8 @@ class TimerClass(threading.Thread):
 
     def run(self):  # функция для запуска треда
         self.isRunning = True
-        eventAirHorn.set()
+        #TODO: убрать, когда закончим тестирование
+        # eventGong2.set()
         self.Update()
 
     def SetTimerList(self, timerList):   # функция задания нового списка таймеров
@@ -393,29 +405,20 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
             print("Path to audio: sounds/*.wav")
-            # self.BeepShortPath = "aplay -q sounds/short_beep.wav &"
-            # self.BeepLongPath = "aplay -q sounds/long_beep.wav &"
-            # self.BeepLowPath = "aplay -q sounds/low_beep.wav &"
-            # self.BeepHighPath = "aplay -q sounds/high_beep.wav &"
-            # self.horn = "aplay -q sounds/airhorn.wav &"
-            # self.short_beep = sa.WaveObject.from_wave_file("sounds/short_beep.wav")
-            # self.long_beep = sa.WaveObject.from_wave_file("sounds/long_beep.wav")
-            # self.low_beep = sa.WaveObject.from_wave_file("sounds/low_beep.wav")
-            # self.high_beep = sa.WaveObject.from_wave_file("sounds/high_beep.wav")
             self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
+            self.beep = sa.WaveObject.from_wave_file("sounds/beep.wav")
+            self.bleep = sa.WaveObject.from_wave_file("sounds/bleep.wav")
+            self.gong1 = sa.WaveObject.from_wave_file("sounds/gong1.wav")
+            self.gong2 = sa.WaveObject.from_wave_file("sounds/gong2.wav")
+            self.gongLaugh = sa.WaveObject.from_wave_file("sounds/gongLaugh.wav")
         else:
             print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
-            # self.BeepShortPath = "aplay -q "+dirpath+"/CupTimer/sounds/short_beep.wav &"
-            # self.BeepLongPath = "aplay -q "+dirpath+"/CupTimer/sound/long_beep.wav &"
-            # self.BeepLowPath = "aplay -q "+dirpath+"/CupTimer/sound/low_beep.wav &"
-            # self.BeepHighPath = "aplay -q "+dirpath+"/CupTimer/sound/high_beep.wav &"
-            # self.horn = "aplay -q "+dirpath+"/CupTimer/sound/airhorn.wav &"
-            # self.short_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/short_beep.wav")
-            # self.long_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/long_beep.wav")
-            # self.low_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/low_beep.wav")
-            # self.high_beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/high_beep.wav")
             self.horn = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/airhorn.wav")
-
+            self.beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/beep.wav")
+            self.bleep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/bleep.wav")
+            self.gong1 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong1.wav")
+            self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
+            self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
         self.isRunning = False
         threading.Thread.__init__(self)     # наследование функций треда
         print("Audio player is created")
@@ -429,27 +432,31 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
 
     def Handler(self):  # обработчик событий
         while self.isRunning is True:   # работает пока поднят флаг
-            if eventLongBeep.isSet():   # проверяется установлено ли событие, длинный писк
-                eventLongBeep.clear()   # если да - сбрасываем событие
-                # self.long_beep.play()   # пищим нужным тоном
-                # os.system(self.BeepLongPath)
-            elif eventShortBeep.isSet():    # аналогично, короткий писк
-                eventShortBeep.clear()
-                # os.system(self.BeepShortPath)
-                # self.short_beep.play()
-            elif eventHighBeep.isSet():     # высокий писк
-                eventHighBeep.clear()
-                # os.system(self.BeepHighPath)
-                # self.high_beep.play()
-            elif eventLowBeep.isSet():      # низкий писк
-                eventLowBeep.clear()
-                # os.system(self.BeepLowPath)
-                # self.low_beep.play()
-            elif eventAirHorn.isSet():      # стартовый горн
+            if eventAirHorn.isSet():      # стартовый горн
                 eventAirHorn.clear()
                 # os.system(self.horn)
                 self.horn.play()
                 # self.horn.export(format='wav')
+            elif eventBeep.isSet():
+                eventBeep.clear()
+                self.beep.play()
+
+            elif eventBleep.isSet():
+                eventBleep.clear()
+                self.bleep.play()
+
+            elif eventGong1.isSet():
+                eventGong1.clear()
+                self.gong1.play()
+
+            elif eventGong2.isSet():
+                eventGong2.clear()
+                self.gong2.play()
+
+            elif eventGongLaugh.isSet():
+                eventGongLaugh.clear()
+                self.gongLaugh.play()
+
             time.sleep(0.001)
         print("Audio player stopped")
 
@@ -624,7 +631,7 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
             elif mode == extremalPro:  # если стал экстремал про
                 print("Extremal Pro")
                 # TODO: Исправить обратно, когда закончим тестирование
-                mainTimer.SetTimerList([[0, 15], [0, 20]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+                mainTimer.SetTimerList([[0, 10], [0, 12]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
             elif mode > 3:
                 print("Countdown")  # если просто обратный отсчет
                 mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 0
@@ -731,11 +738,12 @@ def CloseProgram(w):    # при закрытии программы остан�
     except:
         print("No green timer to stop")
     player.Exit()   # закрываем воспроизведение музыки
-    eventShortBeep.clear()  # очищаем все события
-    eventLongBeep.clear()
-    eventHighBeep.clear()
-    eventLowBeep.clear()
-    eventAirHorn.clear()
+    eventAirHorn.clear()    # очищаем все события
+    eventGongLaugh.clear()
+    eventBeep.clear()
+    eventBleep.clear()
+    eventGong1.clear()
+    eventGong2.clear()
     # pult.Exit()
     # print("Closing window...")
     Gtk.main_quit()     # закрываем графическое окно
@@ -752,7 +760,7 @@ gtkRunner = GtkRunner()     # объект для запуска GTK в отде
 # создаем таймеры, минуты, секунды, какой таймер
 # redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
 # greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
-# TODO: исправить обратно когда закончим тестирование
+# TODO: исправить, когда закончим тестироваие
 mainTimer = TimerClass([[3, 0], [10, 0]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
@@ -766,9 +774,9 @@ if gpio:    # если есть GPIO
 
 gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
-# TODO: и следующую строчку удалить тоже
-# mainTimer.Resume()
 player.start()  # запускаем проигрыватель музыки
+# TODO: убрать, когда закончим тестирование
+# mainTimer.Resume()
 # redTimer.start()
 # greenTimer.start()
 # pult.start()    # запускаем обработчик пульта
