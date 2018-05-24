@@ -52,11 +52,13 @@ pause = 0           # перерыв
 finder = 1          # искатель
 extremal = 2        # экстремал
 extremalPro = 3     # экстремал про
+finderMini = 4      # искатель мини
 # режим по умолчанию
-mode = finder
+mode = finderMini
 
 textPause = "Перерыв"
 textFinder = "Искатель 2.0"
+textFinderMini = "Искатель Мини 2.0"
 # textFinderReady = "Искатель. Подготовка"
 textExtremal = "Экстремал 1.0"
 # textExtremalReady = "Экстремал. Подготовка"
@@ -186,6 +188,17 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinder)
                 cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)  # рисуем первой строкой
                 cr.show_text(textFinder)
+
+            if mode == finderMini:  # если режим ИСКАТЕЛЬ МИНИ
+                if mainTimer.GetTimerListLen() > 1:
+                    cr.set_font_size(self.lineHeight/2)   # шрифт доп надписи = 1/3 строки
+                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
+                    cr.move_to(self.width/2 - textWidth/2, self.lineHeight*1.25)   # рисуем чуть ниже первой строки
+                    cr.show_text(textPreparing)
+                cr.set_font_size(self.lineHeight)   # шрифт основной надписи = 1/2 строки
+                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinderMini)
+                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)  # рисуем первой строкой
+                cr.show_text(textFinderMini)
 
             elif mode == extremal:    # если режим ЭКСТРЕМАЛ
                 if mainTimer.GetTimerListLen() > 1:
@@ -621,9 +634,12 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
             elif mode == extremalPro:  # если стал экстремал про
                 print("Extremal Pro")
                 mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode > 3:
+            elif mode == finderMini:    # если стал искатель мини
+                print("Finder Mini")
+                mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+            elif mode > 4:
                 print("Countdown")  # если просто обратный отсчет
-                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 0
+                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 0
                 mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
 
     def HandlerPause(self, channel):    # обработка нажатия на кнопку Pause
@@ -653,6 +669,9 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
             if mode == extremalPro:
                 print("Reset extremal pro")
                 mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            if mode == finderMini:
+                print("Reset finder mini")
+                mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
 
     def Exit(self):
         # print("Stopping GPIO handler...")
