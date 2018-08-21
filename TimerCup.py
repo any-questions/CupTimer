@@ -53,17 +53,16 @@ finder = 1          # искатель
 extremal = 2        # экстремал
 extremalPro = 3     # экстремал про
 finderMini = 4      # искатель мини
+agro = 5            # кубок РТК - Агро
 # режим по умолчанию
-mode = finderMini
+mode = agro
 
 textPause = "Перерыв"
 textFinder = "Искатель 2.0"
 textFinderMini = "Искатель Мини 2.0"
-# textFinderReady = "Искатель. Подготовка"
 textExtremal = "Экстремал 1.0"
-# textExtremalReady = "Экстремал. Подготовка"
 textExtremalPro = "Экстремал Pro 1.0"
-# textExtremalProReady = "Экстремал Pro. Подготовка"
+textAgro = "Агро"
 textPreparing = "Подготовка"
 textAttemptEnd = "Попытка закончена"
 
@@ -87,8 +86,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        # self.set_size_request(800,600)
-        self.fullscreen()   # растягиваем на весь экран
+        self.set_size_request(800,600)
+        # self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self.drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
@@ -210,6 +209,17 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
                 (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremal)
                 cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)
                 cr.show_text(textExtremal)
+
+            elif mode == agro:    # если режим АГРО
+                if mainTimer.GetTimerListLen() > 1:
+                    cr.set_font_size(self.lineHeight/2)
+                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
+                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*1.25)
+                    cr.show_text(textPreparing)
+                cr.set_font_size(self.lineHeight)
+                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textAgro)
+                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)
+                cr.show_text(textAgro)
 
             elif mode == extremalPro:  # если режим ЭКСТРЕМАЛ Про
                 if mainTimer.GetTimerListLen() > 1:
@@ -637,9 +647,12 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
             elif mode == finderMini:    # если стал искатель мини
                 print("Finder Mini")
                 mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
-            elif mode > 4:
+            elif mode == agro:  # если стал агро
+                print("Agro")
+                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
+            elif mode > 5:
                 print("Countdown")  # если просто обратный отсчет
-                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 0
+                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 5 - 0
                 mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
 
     def HandlerPause(self, channel):    # обработка нажатия на кнопку Pause
@@ -660,18 +673,22 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
             if mode == pause:   # смотрим какой стоял режим работы и ставим его параметры по умолчанию
                 print("Reset pause")
                 mainTimer.SetTimerList([[10, 0], ])  # по умолчанию это один таймер на 10 минут и все
-            if mode == finder:
+            elif mode == finder:
                 print("Reset finder")
                 mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
-            if mode == extremal:
+            elif mode == extremal:
                 print("Reset extremal")
                 mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            if mode == extremalPro:
+            elif mode == extremalPro:
                 print("Reset extremal pro")
                 mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            if mode == finderMini:
+            elif mode == finderMini:
                 print("Reset finder mini")
                 mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+            elif mode == agro:
+                print("Reset finder mini")
+                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+
 
     def Exit(self):
         # print("Stopping GPIO handler...")
@@ -768,7 +785,7 @@ gtkRunner = GtkRunner()     # объект для запуска GTK в отде
 # создаем таймеры, минуты, секунды, какой таймер
 # redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
 # greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
-mainTimer = TimerClass([[3, 0], [10, 0]], 'main')   # тут главный
+mainTimer = TimerClass([[3, 0], [8, 0]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 

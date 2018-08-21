@@ -9,58 +9,62 @@
 - GPIO27 - Канал энкодера А  
 - GPIO22 - Канал энкодера B  
 
+**Установка serial (для отправки сообщений по uart)**  
+`sudo pip3 install serial`
+
 **Установка simpleaudio (для проигрывания звуков):**  
-```$ sudo pip3 install simpleaudio```  
+1. `sudo apt install libasound2-dev`
+2. `$ sudo pip3 install simpleaudio`  
 
 **Установка cobs (для декодирования сообщений):**  
-```$ sudo pip3 install cobs```  
+`$ sudo pip3 install cobs`  
 
 **Установка RPi.GPIO (для работы с gpio на raspberry pi)**  
 Для ubuntu:  
-```$ sudo pip3 install RPi.GPIO```  
+`$ sudo pip3 install RPi.GPIO`  
 Для raspbian также, или:  
-```$ sudo apt install python3-rpi.gpio```  
+`$ sudo apt install python3-rpi.gpio`  
 
 **Установка cairo (для отрисовки графики):**  
-```$ sudo apt install python3-cairo python3-gi-cairo```  
+`$ sudo apt install python3-cairo python3-gi-cairo`  
 
 **Установка шрифтов:**  
-1. Скопировать новый шрифт в формате *.ttf или *.otf в папку /usr/local/share/fonts  
-2. Раздать ему права ```$ sudo chmod 644 *имя файла*```  
+1. Скопировать новый шрифт в формате *.ttf или *.otf в папку `/usr/local/share/fonts`  
+2. Раздать ему права `$ sudo chmod 644 *имя файла*`  
 
 
 **Добавление программы с GUI в автозапуск** ([подробнее](http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui))  
-1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```
+1. `$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`
 2. Добавить в конец строчку с путем к файлу, например:  
-```@/home/pi/CupTimer/TimerCup.py```  
+`@/home/pi/CupTimer/TimerCup.py`  
 
 **Чтобы скрыть предупреждение ssh, о том что пароль стоит стандартный**  
 Чтобы отключить warning в терминале, когда подключаешься по ssh:  
-- удалить файл ```/etc/profile.d/sshpwd.sh```  
+- удалить файл `/etc/profile.d/sshpwd.sh`  
 Чтобы отключить warning на рабочем столе при загрузке  
-- Удалить файл ```/home/pi/.config/lxsession/LXDE-pi/sshpwd.sh```  
-(возможно он лежит тут: ```/etc/xdg/lxsession/LXDE-pi/sshpwd.sh```)
+- Удалить файл `/home/pi/.config/lxsession/LXDE-pi/sshpwd.sh`  
+(возможно он лежит тут: `/etc/xdg/lxsession/LXDE-pi/sshpwd.sh`)
 
 Файлы можно не удалять, а закоментировать часть отвечающую за вывод)  
 
 **Чтобы отключить выключение экрана с течением времени:**  
-1. ```$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart```  
+1. `$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`  
 2. Добавить строчки  
-```
+`
 @xset s noblank  
 @xset s off  
 @xset -dpms  
-```
+`
 
 **Чтобы настроить HDMI выход** ([подробнее](http://wikihandbk.com/wiki/Raspberry_Pi:%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0/config.txt#HDMI_DRIVE))  
-1. ```sudo nano /boot/config.txt```  
+1. `sudo nano /boot/config.txt`  
 2. Раскомментировать (или дописать) следующие строчки:  
-```hdmi_force_hotplug=1``` - видео будет отправляться в HDMI, даже если монитор еще не подключен  
-```hdmi_drive=2``` - звук также отправляется в HDMI  
-```hdmi_group=1``` - подключаемся к телевизору (0 - автоопределение, 2 - к монитору)  
-```hdmi_mode=4``` - 720p 60 fps  
+`hdmi_force_hotplug=1` - видео будет отправляться в HDMI, даже если монитор еще не подключен  
+`hdmi_drive=2` - звук также отправляется в HDMI  
+`hdmi_group=1` - подключаемся к телевизору (0 - автоопределение, 2 - к монитору)  
+`hdmi_mode=4` - 720p 60 fps  
 
 **Чтобы отключить черную рамку по краям экрана**  
-1. ```sudo nano /boot/config.txt```  
+1. `sudo nano /boot/config.txt`  
 2. Раскомментировать (или дописать) следующие строчки:  
-```disable_overscan=1``` - overscan определяет черную рамку по краям экрана (можно включить и настроить по пикселям с каждой из четырех сторон)  
+`disable_overscan=1` - overscan определяет черную рамку по краям экрана (можно включить и настроить по пикселям с каждой из четырех сторон)  
