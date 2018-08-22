@@ -66,7 +66,7 @@ textFinder = "Искатель 2.0"
 textFinderMini = "Искатель Мини 2.0"
 textExtremal = "Экстремал 1.0"
 textExtremalPro = "Экстремал Pro 1.0"
-textAgro = "Агро"
+textAgro = "Агро-I"
 textPreparing = "Подготовка"
 textAttemptEnd = "Попытка закончена"
 
@@ -90,8 +90,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        self.set_size_request(800,600)
-        # self.fullscreen()   # растягиваем на весь экран
+        # self.set_size_request(800,600)
+        self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
         self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self.drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
@@ -129,12 +129,10 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         self.height = self.get_size()[1]
         # максимальная высота шрифта, до которой увеличиваются цифры при обратном отсчете
         self.maxCountDownSize = self.height*0.75
-        self.stepSize = self.maxCountDownSize / 10  # шаг с которым будем увеличивать размер шрифта
 
         cr.set_source_rgb(0, 0, 0)    # фон красим в черный
         cr.paint()  # заливаем фон
         self.currentTime = mainTimer.currentTime
-        # cr.select_font_face("DejaVu Sans",cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         # выставляем параметры шрифта
         cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
@@ -146,21 +144,9 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
             (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("00:00")
             cr.move_to(self.width/2 - textWidth/2, self.height/2 + textHeight/2)
 
-            # self.size += self.stepSize   # постепенно увеличиваем размер
-            # if self.currentTime[1] == self.prevTime - 1:  # если значение секунды сменилось
-            #     self.prevTime = self.currentTime[1]    # фиксируем новое значение времени
-            #     self.size = self.maxCountDownSize/10  # возвращаем значения размера шрифта
-            # if self.size >= self.maxSize: self.size = self.maxSize  # ограничиваем максимальный размер шрифта
-            # cr.set_font_size(self.size)   # задаем размер текста
-            # смотрим какую ширину/высоту будет занимать указанный текст
-            # (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("0")
-            # перемещаем курсор туда где будем рисовать (середина экрана)
-            # cr.move_to(self.width/2 - textWidth/2, self.height/2+textHeight/2)
-            # cr.set_source_rgb(1, 1, 1)    # задаем цвет текста
-
             # если дотикал до конца таймер попытки - выводим соответствующий текст
             if(self.currentTime[0] == 0 and self.currentTime[1] == 0 and
-                    mainTimer.GetTimerListLen() == 1 and self.size > self.maxSize):
+                    mainTimer.GetTimerListLen() == 1):
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
                 cr.set_font_size(self.lineHeight)  # задаем размер текста
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -177,7 +163,6 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
             self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
             self.size = self.lineHeight
             self.maxSize = self.lineHeight*3
-            self.stepSize = self.maxSize/10     # шаг с которым будем увеличивать размер шрифта
             cr.set_source_rgb(1, 1, 1)    # цвет текста - белый
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -787,8 +772,6 @@ mainWindow = MainWindow()   # создаем объект класса глав�
 gtkRunner = GtkRunner()     # объект для запуска GTK в отдельном потоке
 
 # создаем таймеры, минуты, секунды, какой таймер
-# redTimer = TimerClass([[2, 0], ], 'red')  # тут красный
-# greenTimer = TimerClass([[2, 0], ], 'green')  # тут зеленый
 mainTimer = TimerClass([[3, 0], [8, 0]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
@@ -804,10 +787,7 @@ gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
 player.start()  # запускаем проигрыватель музыки
 
-# redTimer.start()
-# greenTimer.start()
 # pult.start()    # запускаем обработчик пульта
-gtkRunner.join()    # цепляем треды к основному потоку
-mainTimer.join()
-# redTimer.join()
-# greenTimer.join()
+# gtkRunner.join()    # цепляем треды к основному потоку
+# mainTimer.join()
+
