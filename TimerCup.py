@@ -59,7 +59,7 @@ extremalPro = 3     # экстремал про
 finderMini = 4      # искатель мини
 agro = 5            # кубок РТК - Агро
 # режим по умолчанию
-mode = agro
+mode = finder
 
 textPause = "Перерыв"
 textFinder = "Искатель 2.0"
@@ -90,197 +90,113 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        # self.set_size_request(800,600)
-        self.fullscreen()   # растягиваем на весь экран
+        self.set_size_request(800,600)
+        # self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
-        self.drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
-        self.drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
-        self.add(self.drawArea)     # добавляем drawing area в окно приложения
-        self.isRunning = True   # флаг что программа работает
-        self.alpha = 0    # начальное значение прозрачности (альфа канал, 0 - полностью прозрачен)
+        self._drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
+        self._drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
+        self.add(self._drawArea)     # добавляем drawing area в окно приложения
+        self._isRunning = True   # флаг что программа работает
         GLib.timeout_add(100, self.on_timer)    # таймер по которому каждые 100 мс будем перерисовывать содержимое
-        self.prevTime = 5   # значение с которого будем рисовать красивый обратный отсчет
         self.show_all()     # отображаем окно
         cursor = Gdk.Cursor.new(Gdk.CursorType.BLANK_CURSOR)    # скрываем курсор
         self.get_window().set_cursor(cursor)
-        self.currentTime = [0, 0]
+        self._currentTime = [0, 0]
 
-        # служебные переменные
-        self.width = 0
-        self.height = 0
-        self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
-        self.maxSize = self.lineHeight * 3
-        self.size = self.maxSize / 10
-        self.maxCountDownSize = self.height/2
-        self.stepSize = self.maxCountDownSize / 10  # шаг с которым будем увеличивать размер шрифта
-        self.counter = 0    # счетчик, по которому будет мигать текст главного таймера в режиме паузы
+        # служебные переменные (здесь обнулены, т.к. они обновляются при изменении размера окна, а это происходит
+        # не сразу при запуске)
+        self._width = 0
+        self._height = 0
+        self._lineHeight = 0
+        self._size = 0      # текущий размер текста
+        self._blinkCounter = 0    # счетчик, по которому будет мигать текст главного таймера в режиме паузы
 
         print("Main window is created")
 
     def on_timer(self):
-        if not self.isRunning:
+        if not self._isRunning:
             return False
-        
-        self.drawArea.queue_draw()    # по таймеру дергаем событие на перерисовку
+
+        self._drawArea.queue_draw()    # по таймеру дергаем событие на перерисовку
         return True
 
+    def draw_text(self, text, size, coord_x, coord_y, cr, color=(1, 1, 1)):   # функция для отрисовки одной строки текста
+        '''
+        :param text: отображаемый текст
+        :param size: размер текста
+        :param coord_x: координата X центра текста
+        :param coord_y: координата Y центра текста
+        :param cr: служебный модуль cairo который надо передавать в функцию
+        :param color: цвет текста, по умолчанию - белый
+        :return:
+        '''
+        cr.set_font_size(size)
+        cr.set_source_rgb(color[0], color[1], color[2])
+        (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(text)   # определяем сколько будет занимать текст
+        cr.move_to(coord_x - textWidth / 2, coord_y + textHeight / 2)
+        if len(text) == 5:
+            print(textWidth / 2)
+        cr.show_text(text)
+
     def expose(self, widget, cr):
-        self.width = self.get_size()[0]     # получаем значения ширины и высоты
-        self.height = self.get_size()[1]
-        # максимальная высота шрифта, до которой увеличиваются цифры при обратном отсчете
-        self.maxCountDownSize = self.height*0.75
+        self._width = self.get_size()[0]     # получаем значения ширины и высоты
+        self._height = self.get_size()[1]
+        self._lineHeight = self._height / 5  # задаем высоту строки = 1/5  высоты экрана
+        textHeight = self._lineHeight * 0.8
+        textPos = self._lineHeight / 2
 
         cr.set_source_rgb(0, 0, 0)    # фон красим в черный
         cr.paint()  # заливаем фон
-        self.currentTime = mainTimer.currentTime
+        self._currentTime = mainTimer.currentTime
         # выставляем параметры шрифта
-        cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
-
-        if mainTimer.finalCountdown is True and not mode == pause and mainTimer.GetTimerListLen() == 1:   # если тикают последние 5 секунд главного таймера
-            self.size = self.maxCountDownSize
-            cr.set_font_size(self.size)
-            cr.set_source_rgb(1, 0, 0)
-            (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("00:00")
-            cr.move_to(self.width/2 - textWidth/2, self.height/2 + textHeight/2)
-
+        if mainTimer.finalCountdown is True and not mode == pause and mainTimer.GetTimerListLen() == 1:   # если тикают последние 10 секунд главного таймера
             # если дотикал до конца таймер попытки - выводим соответствующий текст
-            if(self.currentTime[0] == 0 and self.currentTime[1] == 0 and
-                    mainTimer.GetTimerListLen() == 1):
+            if self._currentTime[0] == 0 and self._currentTime[1] == 0 and mainTimer.GetTimerListLen() == 1:
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
-                cr.set_font_size(self.lineHeight)  # задаем размер текста
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textAttemptEnd)
-                cr.move_to(self.width / 2 - textWidth / 2, self.height / 2 + textHeight / 2)    # рисуем посередине
-                # cr.move_to(self.width / 2 - textWidth / 2, self.height / 5)
-                cr.set_source_rgb(1, 1, 1)
-                cr.show_text(textAttemptEnd)  # выводим текст
+                self.draw_text(textAttemptEnd, self._lineHeight, self._width/2, self._height/2, cr)
             else:
-                # if self.counter//5 != 0:
-                cr.show_text(mainTimer.GetTimer())
+                cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+                self.draw_text(mainTimer.GetTimer(), self._lineHeight*4, self._width/2, self._height/2, cr, (1, 0, 0))
+
 
         else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
-            self.lineHeight = self.height / 5  # задаем высоту строки = 1/5  высоты экрана
-            self.size = self.lineHeight
-            self.maxSize = self.lineHeight*3
-            cr.set_source_rgb(1, 1, 1)    # цвет текста - белый
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             if mode == finder:  # если режим ИСКАТЕЛЬ
-                if mainTimer.GetTimerListLen() > 1:
-                    cr.set_font_size(self.lineHeight/2)   # шрифт доп надписи = 1/3 строки
-                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width/2 - textWidth/2, self.lineHeight*1.25)   # рисуем чуть ниже первой строки
-                    cr.show_text(textPreparing)
-                cr.set_font_size(self.lineHeight)   # шрифт основной надписи = 1/2 строки
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinder)
-                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)  # рисуем первой строкой
-                cr.show_text(textFinder)
-
-            if mode == finderMini:  # если режим ИСКАТЕЛЬ МИНИ
-                if mainTimer.GetTimerListLen() > 1:
-                    cr.set_font_size(self.lineHeight/2)   # шрифт доп надписи = 1/3 строки
-                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width/2 - textWidth/2, self.lineHeight*1.25)   # рисуем чуть ниже первой строки
-                    cr.show_text(textPreparing)
-                cr.set_font_size(self.lineHeight)   # шрифт основной надписи = 1/2 строки
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textFinderMini)
-                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)  # рисуем первой строкой
-                cr.show_text(textFinderMini)
+                self.draw_text(textFinder, textHeight, self._width/2, textPos, cr)
 
             elif mode == extremal:    # если режим ЭКСТРЕМАЛ
-                if mainTimer.GetTimerListLen() > 1:
-                    cr.set_font_size(self.lineHeight/2)
-                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*1.25)
-                    cr.show_text(textPreparing)
-                cr.set_font_size(self.lineHeight)
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremal)
-                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)
-                cr.show_text(textExtremal)
-
-            elif mode == agro:    # если режим АГРО
-                if mainTimer.GetTimerListLen() > 1:
-                    cr.set_font_size(self.lineHeight/2)
-                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*1.25)
-                    cr.show_text(textPreparing)
-                cr.set_font_size(self.lineHeight)
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textAgro)
-                cr.move_to(self.width/2-textWidth/2, self.lineHeight*0.75)
-                cr.show_text(textAgro)
+                self.draw_text(textExtremal, textHeight, self._width/2, textPos, cr)
 
             elif mode == extremalPro:  # если режим ЭКСТРЕМАЛ Про
-                if mainTimer.GetTimerListLen() > 1:
-                    cr.set_font_size(self.lineHeight/2)
-                    (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPreparing)
-                    cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*1.25)
-                    cr.show_text(textPreparing)
-                cr.set_font_size(self.lineHeight)
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textExtremalPro)
-                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*0.75)
-                cr.show_text(textExtremalPro)
+                self.draw_text(textExtremalPro, textHeight, self._width/2, textPos, cr)
 
             elif mode == pause:    # если Таймер
-                cr.set_font_size(self.lineHeight)
-                # смотрим какую ширину/высоту будет занимать указанный текст
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textPause)
-                cr.move_to(self.width / 2 - textWidth / 2, self.lineHeight*0.75)
-                cr.show_text(textPause)
-            # выставляем параметры шрифта
+                self.draw_text(textPause, textHeight, self._width/2, textPos, cr)
+
+            elif mode == finderMini:  # если режим ИСКАТЕЛЬ МИНИ
+                self.draw_text(textFinderMini, textHeight, self._width/2, textPos, cr)
+
+            elif mode == agro:    # если режим АГРО
+                self.draw_text(textAgro, textHeight, self._width/2, textPos, cr)
+
+            if mainTimer.GetTimerListLen() > 1:     # если есть еще доп таймеры в списке - добавляем фразу "подготовка"
+                self.draw_text(textPreparing, self._lineHeight/2, self._width/2, self._lineHeight, cr)
+
             cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
-            # cr.set_font_size(self.size)   # шрифт доп таймеров = 1 строка
-            # cr.set_source_rgb(1,0,0)    # цвет текста - красный
-            # cr.move_to(self.width/4 - textWidth/2, self.height/3)   # перемещаем курсор туда где будем рисовать
-            # cr.show_text(redTimer.timeString)  # задаем текст
-            #
-            # cr.move_to(self.width*3/4 - textWidth/2, self.height/3) # аналогично предыдущему
-            # cr.set_source_rgb(0,1,0)    # цвет текста - зеленый
-            # cr.show_text(greenTimer.timeString)
-
-            cr.set_font_size(self.lineHeight*3)   # шрифт таймера = 2 строки
-            # смотрим какую ширину/высоту будет занимать указанный текст
-            (x, y, textWidth, textHeight, dx, dy) = cr.text_extents("00:00")
-            cr.move_to(self.width/2 - textWidth/2, self.lineHeight*3.5)
+            # вывод главного таймера, если осталось 10 сек - рисуется красным
             if mainTimer.finalCountdown is True:
-                cr.set_source_rgb(1, 0, 0)
+                self.draw_text(mainTimer.GetTimer(), self._lineHeight*3, self._width/2, self._lineHeight*2.5, cr,(1,0,0))
             else:
-                cr.set_source_rgb(1, 1, 1)    # цвет текста - белый
-            cr.show_text(mainTimer.GetTimer())
-            self.size = self.maxSize/10
+                self.draw_text(mainTimer.GetTimer(), self._lineHeight*3, self._width/2, self._lineHeight*2.5, cr)
 
-            if pauseButtonToggled and self.counter//5 != 0:
+            if pauseButtonToggled and self._blinkCounter//5 != 0:
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-                cr.set_font_size(self.lineHeight)
-                (x, y, textWidth, textHeight, dx, dy) = cr.text_extents(textAdditional)
-                cr.move_to(self.width/2-textWidth/2, self.lineHeight*4.5)
-                cr.set_source_rgb(1, 1, 1)
-                cr.show_text(textAdditional)
+                self.draw_text(textAdditional, self._lineHeight, self._width/2, self._lineHeight*4,cr)
 
-        self.counter += 1
-        if self.counter > 9: self.counter = 0
-
-            # self.infoSize = self.height/60  #вывод сервисной информации от пультов, высота строки совсем маленькая
-        # cr.set_font_size(self.infoSize)
-        # (x,y,textWidth,textHeight,dx,dy) = cr.text_extents("P1: None;")
-        # выставляем параметры шрифта
-        # cr.select_font_face("DejaVu Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        # cr.set_source_rgb(1,1,1)
-        # for i in range(3):  #в цикле выводим статичную часть надписи
-        #     cr.move_to(self.width/100+textWidth*1.5*i, self.height*59/60)
-        #     cr.show_text("P"+str(i+1)+": ")
-        # for i in range(3):  #в цикле же выводим информацию от пультов
-        #     cr.move_to(self.width/100+textWidth*1.5*i+textWidth*6/9,self.height*59/60)
-        #     if(pult.status[i] == 'None'):   # разным цветом,в зависимости от информации
-        #         cr.set_source_rgb(1,0,0)    # красным, если пульта нет, или заряд слишком маленький
-        #     elif (pult.status[i] >= 5):
-        #         cr.set_source_rgb(0,1,0)    # зеленым, если все хорошо
-        #     elif (pult.status[i] < 3):
-        #         cr.set_source_rgb(1,0,0)
-        #     else:
-        #         cr.set_source_rgb(1,1,0)    # желтым если начало садиится
-        #     cr.show_text(str(pult.status[i]))
+        self._blinkCounter += 1
+        if self._blinkCounter > 9: self._blinkCounter = 0
 
 ###################################################
 '''
@@ -331,11 +247,10 @@ class TimerClass(threading.Thread):
                         self.finalCountdown = False
                         # записываем время нового таймера: мин, сек
                         self.currentTime = [self.timerList[0][0], self.timerList[0][1]]
-                        mainWindow.prevTime = 6
                     else:
                         self.isPaused = True    # если это был последний таймер - останавливаем отсчет
 
-                elif self.currentTime[0] == 0 and self.currentTime[1] <= 10:  # если осталось тикать 5 секунд
+                elif self.currentTime[0] == 0 and self.currentTime[1] <= 10:  # если осталось тикать 10 секунд
                     self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
                 time.sleep(1)   # останавливаем тред на секунду
         print(self.timer,"timer stopped")
@@ -349,7 +264,6 @@ class TimerClass(threading.Thread):
         self.timerList = timerList
         self.currentTime = [self.timerList[0][0], self.timerList[0][1]]
         self.finalCountdown = False
-        mainWindow.prevTime = 6
 
     def Pause(self):    # поставить отсчет на паузу
         self.isPaused = True
@@ -386,6 +300,7 @@ class TimerClass(threading.Thread):
 
     def GetTimer(self):
         self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])  # записываем время в паттерн
+        print(len(self.timeString))
         return self.timeString
 
 
@@ -772,7 +687,7 @@ mainWindow = MainWindow()   # создаем объект класса глав�
 gtkRunner = GtkRunner()     # объект для запуска GTK в отдельном потоке
 
 # создаем таймеры, минуты, секунды, какой таймер
-mainTimer = TimerClass([[3, 0], [8, 0]], 'main')   # тут главный
+mainTimer = TimerClass([[0, 10], [0, 10]], 'main')   # тут главный
 
 player = PlayMusic()    # создаем объект класса проигрывания музыки
 
@@ -789,5 +704,4 @@ player.start()  # запускаем проигрыватель музыки
 
 # pult.start()    # запускаем обработчик пульта
 # gtkRunner.join()    # цепляем треды к основному потоку
-# mainTimer.join()
-
+mainTimer.Resume()
