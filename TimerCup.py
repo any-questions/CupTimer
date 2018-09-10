@@ -2,28 +2,34 @@
 import time         # для таймеров
 import threading    # для тредов
 import gi           # для gui
-import serial       # для uart
-import simpleaudio as sa  # для аудио
 import cairo        # для визуальных эффектов
-import cobs         # для декодирования сообщений из uart
 import os           # чтобы иметь возможность слать команды os
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Pango, GLib, Gdk
+# import serial       # для uart
+# import simpleaudio as sa  # для аудио (оставлено на будущее)
+# import cobs         # для декодирования сообщений из uart (оставлено на будущее)
+
+try:
+    from pynput import keyboard     # для слежения за клавиатурой
+    keys = True
+except ImportError:
+    print("Error importing pynput!")
+    keys = False
 
 try:
     import RPi.GPIO as GPIO  # для работы с GPIO
     gpio = True
 
-except:
+except RuntimeError:
     print("Error importing RPi.GPIO!")
     gpio = False
 
 # TODO: Добавить режим работы в котором оно будет работать бесконечно. (Отборочный тур. Подготовка. Отборочный тур. Попытка)
-# TODO: Добавить возможность управления таймером с клавиатуры. (Возможно через проверку ОС на которой запущен таймер)
 # TODO: Продумать возможность добавления новых режимов работы без влезания в код (или максимально все упростить)
 # TODO: Переделать режимы в словарь или список (совместить с предудщим пунктом)
 
-###################################################################################
+############
 '''
 Принцип работы таймера:
 Кнопка Select используется для выбора режима работы таймера;
@@ -46,7 +52,7 @@ Start начинается обратный отсчет до нуля. Повт
 Изменение режима работы таймера, сброс таймера, а также выключение доступны только если обратный отсчет не идет, т.е.
 во время обратного отсчета (любого) кнопки Select, Reset, Shutdown неактивны.
 '''
-####################################################################################
+############
 ############
 '''
 Словарь с режимами работы таймера. 
@@ -94,7 +100,6 @@ eventGong2 = threading.Event()
 eventGongLaugh = threading.Event()
 eventAirHorn = threading.Event()
 
-shutdownFlag = False    # флаг, что raspberry надо выключить
 pauseButtonToggled = False     # флаг, что нажали на кнопку Pause
 
 class MainWindow(Gtk.Window):   # класс основного окна с тремя таймерами
@@ -103,8 +108,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        # self.set_size_request(800,600)
-        self.fullscreen()   # растягиваем на весь экран
+        self.set_size_request(800,600)
+        # self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
         self._drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self._drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
@@ -184,7 +189,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
                 self.draw_text(mainTimer.GetTimer(), self._lineHeight*4, self._width/2, self._height/2, cr, (1, 0, 0))
 
 
-        else:   # если не идет обратный отсчет последних 5 секунд - рисуем все три таймера
+        else:   # если не идет обратный отсчет последних 5 секунд
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             if mode == finder:  # если режим ИСКАТЕЛЬ
@@ -222,7 +227,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         self._blinkCounter += 1
         if self._blinkCounter > 9: self._blinkCounter = 0
 
-###################################################
+############
 '''
 Класс для работы таймера. Параметрами являются список таймеров, который включает в себя:
 минуты, секунды для нескольких таймеров подряд, и тип таймера - главный, крсный или зеленый.
@@ -231,7 +236,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
 если он только один - таймер останавливается.
 после того как дотикает до конца.
 '''
-###################################################
+############
 
 
 class TimerClass(threading.Thread):
@@ -246,7 +251,7 @@ class TimerClass(threading.Thread):
         self.isPaused = True    # флаг, чтобы ставить таймер на паузу
         self.finalCountdown = False     # флаг, что идет отсчет последних 5 секунд
         print(timer,"timer is created")
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
 
     def Update(self):   # функция обновления таймера
         while self.isRunning:      # пока тред запущен
@@ -360,7 +365,7 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
             self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
         self.isRunning = False
-        threading.Thread.__init__(self)     # наследование функций треда
+        threading.Thread.__init__(self, daemon=True)     # наследование функций треда
         print("Audio player is created")
 
     def __del__(self):  # деструктор останавливает флаг
@@ -403,11 +408,11 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
     def Exit(self):
         self.isRunning = False
 
-###
+############
 '''
 Маленький служебный класс для запуска Gtk в отдельном потоке.
 '''
-###
+############
 
 
 class GtkRunner(threading.Thread):
@@ -417,12 +422,12 @@ class GtkRunner(threading.Thread):
     def run(self):
         Gtk.main()
 
-###
+############
 '''
 Класс для общения с UART и обработки входящих сообщений с пультов управления таймером.
 Пока не доработан и не используется.
 '''
-###
+############
 
 
 class PultHandler(threading.Thread):    # класс обработки сообщений с пульта
@@ -495,70 +500,38 @@ class PultHandler(threading.Thread):    # класс обработки сооб
         # self.decodedLine = cobs.decode(encodedLine)
 
 
-###
+
+############
 '''
-Класс работы с GPIO Raspberry Pi. К GPIO подключены кнопки Start, Pause, Reset, Shutdown,
-а также энкодер с кнопкой Select.
-Все кнопки подтянуты к питанию с помощью внешнего резистора, поэтому программно подтягивать их никуда не нужно.
+Класс для работы с главным таймером. К нему будут обращаться обработчики нажатий на кнопки и на клавиатуру. 
 '''
-###
+############
 
 
-class GpioHandler(threading.Thread):    # класс отслеживающий состояние GPIO
-    global mode, pause, finder, extremal, pauseButtonToggled
-
-    def __init__(self):
-        # задаем номера gpio для кнопок
-        self.GpioStart = 4  # запуск таймера
-        self.GpioPause = 3  # пауза таймера
-        self.GpioReset = 2  # сброс таймера
-        self.GpioSelect = 17    # выбор режима работы
-        self.GpioEncA = 27  # установка времени с энкодера
-        self.GpioEncB = 22
-        self.GpioShutdown = 23  # выключение малины
-        chan_list = [self.GpioSelect, self.GpioStart, self.GpioPause,
-                     self.GpioReset, self.GpioShutdown]
-        GPIO.setmode(GPIO.BCM)  # выбор нумерации пинов - задаем напрямую
-        GPIO.setup(chan_list, GPIO.IN)   # устанавливаем все пины на вход
-        GPIO.setup(self.GpioEncA, GPIO.IN, pull_up_down=GPIO.PUD_UP)    # каналы энкодера также на вход
-        GPIO.setup(self.GpioEncB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # цепляем callback функции к изменению состояния пинов
-        # применение - номер пина, что пытаемся ловить, функция - callback, сколько ждать устаканивания дребезга
-        GPIO.add_event_detect(self.GpioSelect, GPIO.FALLING, callback=self.HandlerSelect, bouncetime=200)
-        GPIO.add_event_detect(self.GpioStart, GPIO.FALLING, callback=self.HandlerStart, bouncetime=200)
-        GPIO.add_event_detect(self.GpioPause, GPIO.FALLING, callback=self.HandlerPause, bouncetime=200)
-        GPIO.add_event_detect(self.GpioReset, GPIO.FALLING, callback=self.HandlerReset, bouncetime=200)
-        GPIO.add_event_detect(self.GpioShutdown, GPIO.FALLING, callback=self.HandlerShutdown, bouncetime=200)
-        self.isRunning = False  # флаг, что мы все еще слушаем GPIO (нужен для корректного завершения потока)
-        print("GPIO handler is created")
-        threading.Thread.__init__(self, daemon=True)
-
-    def HandlerShutdown(self, channel):     # обработка нажатия на кнопку выключения
-        global shutdownFlag
-        if mainTimer.GetIsPaused():     # программу можно завершить, только если таймер ничего не считает
+class TimerHandler:
+    # объявляем так чтобы можно было не объявлять экземпляр класса, а вызывать как TimerHandler.shutdown()
+    @staticmethod
+    def shutdown():     # завершение работы
+        if mainTimer.GetIsPaused():
             print("Closing programm...")
-            shutdownFlag = True     # поднимаем флаг, что raspberry нужно будет выключить
-            CloseProgram(0)         # закрываем программу
+            CloseProgram(0)
 
-    def HandlerStart(self, channel):    # обработка нажатия на кнопку Start
+    @staticmethod
+    def start():    # нажатие на кнопку Start - запуск отсчета или принудительный переход к следующему отсчету
         global pauseButtonToggled
-
         print("Start countdown pressed")
-        # если еще осталось дотикать хоть что нибудь
         if mainTimer.GetCurrentMin() != 0 or mainTimer.GetCurrentSec() != 0:
             pauseButtonToggled = False
-            if mainTimer.GetIsPaused():     # если таймер был остановлен - запускаем его
+            if mainTimer.GetIsPaused():
                 mainTimer.Resume()
                 print("Resume countdown")
-            else:   # если уже тикал - принудительно завершаем чтобы перейти к следующему
+            else:
                 mainTimer.Force()
                 print("Force countdown")
-        else:
-            print("Timer finished, no action")
 
-    def HandlerSelect(self, channel):   # обработка выбора режима
-        global mode, pauseButtonToggled
-
+    @staticmethod
+    def next_mode():   # выбор режима работы
+        global  mode, pauseButtonToggled
         if mainTimer.GetIsPaused():     # менять режим работы можно только если отсчет не идет
             pauseButtonToggled = False
             mode += 1   # выбираем следующий режим
@@ -582,40 +555,132 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
                 mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 5 - 0
                 mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
 
-    def HandlerPause(self, channel):    # обработка нажатия на кнопку Pause
+    @staticmethod
+    def prev_mode():
+        global mode, pauseButtonToggled
+        if mainTimer.GetIsPaused():  # менять режим работы можно только если отсчет не идет
+            pauseButtonToggled = False
+            mode -= 1  # выбираем следующий режим
+            if mode == finder:  # если он стал искатель
+                print("Finder")
+                mainTimer.SetTimerList([[3, 0], [10, 0]])  # ставим таймеры - три минуты на подготовку, 10 на попытку
+            elif mode == extremal:  # если стал экстремал
+                print("Extremal")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            elif mode == extremalPro:  # если стал экстремал про
+                print("Extremal Pro")
+                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
+            elif mode == finderMini:  # если стал искатель мини
+                print("Finder Mini")
+                mainTimer.SetTimerList([[3, 0], [5, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+            elif mode == agro:  # если стал агро
+                print("Agro")
+                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
+            elif mode < 0:
+                print("Countdown")  # если просто обратный отсчет
+                mode = 5  # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 5 - 0
+                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
+
+    @staticmethod
+    def pause():    # установка таймера на паузу
         global pauseButtonToggled
         print("Pause")
-        # if mainTimer.GetIsPaused():     # если таймер стоял на паузе - запускаем его, и наоборот
-        #     mainTimer.Resume()
-        # else:
-        if not mainTimer.GetIsPaused():
+        if not mainTimer.GetIsPaused():     # ставим таймер на паузу, если о
             pauseButtonToggled = True
         mainTimer.Pause()
 
-    def HandlerReset(self, channel):    # обработка нажатия на кнопку Reset
+    @staticmethod
+    def reset():    # сброс таймера
         global pauseButtonToggled
-
-        if mainTimer.GetIsPaused():     # сброс доступен только если таймер не считает
+        if mainTimer.GetIsPaused():  # сброс доступен только если таймер не считает
             pauseButtonToggled = False
-            if mode == pause:   # смотрим какой стоял режим работы и ставим его параметры по умолчанию
+            if mode == pause:  # смотрим какой стоял режим работы и ставим его параметры по умолчанию
                 print("Reset pause")
                 mainTimer.SetTimerList([[10, 0], ])  # по умолчанию это один таймер на 10 минут и все
             elif mode == finder:
                 print("Reset finder")
-                mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
+                mainTimer.SetTimerList([[3, 0], [10, 0]])  # ставим таймеры - три минуты на подготовку, 10 на попытку
             elif mode == extremal:
                 print("Reset extremal")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
             elif mode == extremalPro:
                 print("Reset extremal pro")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
+                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
             elif mode == finderMini:
                 print("Reset finder mini")
-                mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+                mainTimer.SetTimerList([[3, 0], [5, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
             elif mode == agro:
                 print("Reset finder mini")
                 mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
 
+    @staticmethod
+    def add_minute():   # добавить минуту (только в режиме перерыва и когда таймер на паузе)
+        if mode == pause and mainTimer.GetIsPaused():
+            min = mainTimer.GetCurrentMin()
+            min += 1
+            if min > 99:
+                min = 99
+            mainTimer.SetTimerList([[min, 0], ])
+
+    @staticmethod
+    def reduce_minute():   # убрать минуту (только в режиме перерыва и когда таймер на паузе)
+        if mode == pause and mainTimer.GetIsPaused():
+            min = mainTimer.GetCurrentMin()
+            min -= 1
+            if min < 1:
+                min = 1
+            mainTimer.SetTimerList([[min, 0], ])
+
+
+############
+'''
+Класс работы с GPIO Raspberry Pi. К GPIO подключены кнопки Start, Pause, Reset, Shutdown,
+а также энкодер с кнопкой Select.
+Все кнопки подтянуты к питанию с помощью внешнего резистора, поэтому программно подтягивать их никуда не нужно.
+'''
+############
+
+
+class GpioHandler(threading.Thread):    # класс отслеживающий состояние GPIO
+    global mode, pause, finder, extremal, pauseButtonToggled
+
+    def __init__(self):
+        # задаем номера gpio для кнопок
+        self.GpioStart = 4  # запуск таймера
+        self.GpioPause = 3  # пауза таймера
+        self.GpioReset = 2  # сброс таймера
+        self.GpioSelect = 17    # выбор режима работы
+        self.GpioShutdown = 23  # выключение малины
+        _chan_list = [self.GpioSelect, self.GpioStart, self.GpioPause,
+                     self.GpioReset, self.GpioShutdown]
+        _bouncetime = 200   # сколько мс ждем устаканивания дребезга
+        GPIO.setmode(GPIO.BCM)  # выбор нумерации пинов - задаем напрямую
+        GPIO.setup(_chan_list, GPIO.IN)   # устанавливаем все пины на вход
+        # цепляем callback функции к изменению состояния пинов
+        # применение - номер пина, что пытаемся ловить, функция - callback, сколько ждать устаканивания дребезга
+        GPIO.add_event_detect(self.GpioSelect, GPIO.FALLING, callback=self.HandlerSelect, bouncetime=_bouncetime)
+        GPIO.add_event_detect(self.GpioStart, GPIO.FALLING, callback=self.HandlerStart, bouncetime=_bouncetime)
+        GPIO.add_event_detect(self.GpioPause, GPIO.FALLING, callback=self.HandlerPause, bouncetime=_bouncetime)
+        GPIO.add_event_detect(self.GpioReset, GPIO.FALLING, callback=self.HandlerReset, bouncetime=_bouncetime)
+        GPIO.add_event_detect(self.GpioShutdown, GPIO.FALLING, callback=self.HandlerShutdown, bouncetime=_bouncetime)
+        self.isRunning = False  # флаг, что мы все еще слушаем GPIO (нужен для корректного завершения потока)
+        print("GPIO handler is created")
+        threading.Thread.__init__(self, daemon=True)
+
+    def HandlerShutdown(self, channel):     # обработка нажатия на кнопку выключения
+        os.system("sudo shutdown -h now")  # выключаем raspberry pi
+
+    def HandlerStart(self, channel):    # обработка нажатия на кнопку Start
+        TimerHandler.start()
+
+    def HandlerSelect(self, channel):   # обработка выбора режима
+        TimerHandler.next_mode()
+
+    def HandlerPause(self, channel):    # обработка нажатия на кнопку Pause
+        TimerHandler.pause()
+
+    def HandlerReset(self, channel):    # обработка нажатия на кнопку Reset
+        TimerHandler.reset()
 
     def Exit(self):
         # print("Stopping GPIO handler...")
@@ -623,12 +688,12 @@ class GpioHandler(threading.Thread):    # класс отслеживающий 
         GPIO.cleanup()
         print("GPIO handler stopped")
 
-##############
+############
 '''
 Класс читающий показания энкодера в отдельном потоке. Работает непрерывно, считывает состояние каналов энкодера
 около 1000 раз в секунду. Работает только в режиме просто обратного отсчета.
 '''
-##############
+############
 
 
 class EncoderCounter(threading.Thread):
@@ -636,8 +701,8 @@ class EncoderCounter(threading.Thread):
         self.GpioEncA = 27  # пины - каналы энкодера
         self.GpioEncB = 22
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.GpioEncA, GPIO.IN)  # устанавливаем пины на вход
-        GPIO.setup(self.GpioEncB, GPIO.IN)
+        GPIO.setup(self.GpioEncA, GPIO.IN, pull_up_down=GPIO.PUD_UP)    # каналы энкодера  на вход
+        GPIO.setup(self.GpioEncB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         self.isRunning = False  # флаг для корректного завершения треда
         self.encAprev = GPIO.input(self.GpioEncA)   # записываем начальные состояния каналов
         self.encA = GPIO.input(self.GpioEncA)
@@ -653,15 +718,9 @@ class EncoderCounter(threading.Thread):
             if mode == pause and mainTimer.GetIsPaused():
                 if self.encA != self.encAprev:  # если изменилось состояние на первом канале
                     if self.encB != self.encA:  # и оно не совпадает со второым каналом
-                        min = mainTimer.GetCurrentMin() # смотрим какое время было установлено
-                        min += 1    # плюсуем минуту
-                        if min > 99: min = 99   # обрезаем максимум
-                        mainTimer.SetTimerList([[min, 0], ]) # ставим новое время
+                        TimerHandler.add_minute()
                     else:   # если совпадает со вторым каналом
-                        min = mainTimer.GetCurrentMin() # тут аналогично, но минуту минусуем
-                        min -= 1
-                        if min < 1: min = 1    # и не даем уйти ниже нуля
-                        mainTimer.SetTimerList([[min, 0], ])
+                        TimerHandler.reduce_minute()
                 self.encAprev = self.encA   # записываем новое "предыдущее" состояние первого канала
             time.sleep(0.001)   # засыпаем
         print("Encoder handler stopped")
@@ -674,36 +733,75 @@ class EncoderCounter(threading.Thread):
         # print("Stopping encoder listener...")
         self.isRunning = False
 
-def CloseProgram(w):    # при закрытии программы останавливаем таймеры и закрываем окно
-    global shutdownFlag
 
+if keys:    # если есть библиотека для работы с клавиатурой
+    class EscException(Exception): pass     # исключение по которому будем закрывать программу
+
+    def on_release(key):
+        global mode, pause, finder, pauseButtonToggled
+        try:
+            if key.char == 'p' or key.char == 'P' or key.char == 'з' or key.char == 'З':  # клавиша P - пауза таймера
+                TimerHandler.pause()
+
+        except AttributeError:
+            if key == keyboard.Key.space:  # клавиша Space - запуск
+                TimerHandler.start()
+
+            elif key == keyboard.Key.backspace:     # клавиша backspace - сброс таймера
+                TimerHandler.reset()
+
+            elif key == keyboard.Key.left:  # смена режима - стрелки право-лево
+                TimerHandler.prev_mode()
+
+            elif key == keyboard.Key.right:
+                TimerHandler.next_mode()
+
+            elif key == keyboard.Key.up:  # увеличить время на паузе
+                TimerHandler.add_minute()
+
+            elif key == keyboard.Key.down:    # уменьшить время на паузе
+                TimerHandler.reduce_minute()
+
+            elif key == keyboard.Key.esc:   # закрытие программы
+                TimerHandler.shutdown()
+                raise EscException(key)  # дергаем исключение, которое закроет программу
+
+
+def CloseProgram(w):    # при закрытии программы останавливаем таймеры и закрываем окно
     try:
         mainTimer.Exit()    # закрываем таймеры
-    except:
-        print("No main timer to stop")
+    except NameError:
+        print("No Main timer to stop")
     try:
         redTimer.Exit()
     except NameError:
         print("No Red timer to stop")
-    player.Exit()   # закрываем воспроизведение музыки
+    try:
+        greenTimer.Exit()
+    except NameError:
+        print("No Green timer to stop")
+    try:
+        player.Exit()   # закрываем воспроизведение музыки
+    except NameError:
+        print("No player to stop")
     eventAirHorn.clear()    # очищаем все события
     eventGongLaugh.clear()
     eventBeep.clear()
     eventBleep.clear()
     eventGong1.clear()
     eventGong2.clear()
-    # pult.Exit()
-    # print("Closing window...")
-    Gtk.main_quit()     # закрываем графическое окно
+    try:
+        pult.Exit()
+    except NameError:
+        print("No pult handler to stop")
     try:
         encoderHandler.Exit()   # закрываем опрос энкодера
         gpioHandler.Exit()  # очищаем GPIO
+
     except NameError:
         print("No GPIO to close")
+    Gtk.main_quit()     # закрываем графическое окно
     print("Program closed")
-    if shutdownFlag is True:
-        print("Goodbye")
-        os.system("sudo shutdown -h now")  # выключаем raspberry pi
 
 mainWindow = MainWindow()   # создаем объект класса главного окна
 gtkRunner = GtkRunner()     # объект для запуска GTK в отдельном потоке
@@ -711,8 +809,7 @@ gtkRunner = GtkRunner()     # объект для запуска GTK в отде
 # создаем таймеры, минуты, секунды, какой таймер
 mainTimer = TimerClass([[10, 0], ], 'main')   # тут главный
 
-player = PlayMusic()    # создаем объект класса проигрывания музыки
-
+# player = PlayMusic()    # создаем объект класса проигрывания музыки
 # pult = PultHandler()    # создаем обработчик пульта
 
 if gpio:    # если есть GPIO
@@ -722,8 +819,15 @@ if gpio:    # если есть GPIO
 
 gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
-player.start()  # запускаем проигрыватель музыки
-
+# player.start()  # запускаем проигрыватель музыки
 # pult.start()    # запускаем обработчик пульта
+
 # gtkRunner.join()    # цепляем треды к основному потоку
 # mainTimer.Resume()
+if keys:    # если есть библиотека для работы с клавиатурой
+    with keyboard.Listener(on_release=on_release) as listener:  # класс для мониторинга клавиатуры
+        try:
+            listener.join()
+        except EscException as e:    # если срабатывает исключение
+            print("Exception happened")
+            CloseProgram(0)  # закрываем программу

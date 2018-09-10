@@ -9,24 +9,30 @@
 - GPIO27 - Канал энкодера А  
 - GPIO22 - Канал энкодера B  
 
+###Обязательные модули
+**Установка RPi.GPIO (для работы с gpio на raspberry pi)**  
+Для ubuntu:  
+`sudo pip3 install RPi.GPIO`  
+Для raspbian также, или:  
+`sudo apt install python3-rpi.gpio`  
+
+**Установка cairo (для отрисовки графики):**  
+`sudo apt install python3-cairo python3-gi-cairo`
+
+**Установка pynput (для того чтобы слушать клавиатуру)**  
+`sudo pip3 install pynput` 
+
+
+###Модули, которые возможно понадобятся в будущем
 **Установка serial (для отправки сообщений по uart)**  
 `sudo pip3 install serial`
 
 **Установка simpleaudio (для проигрывания звуков):**  
 1. `sudo apt install libasound2-dev`
-2. `$ sudo pip3 install simpleaudio`  
+2. `sudo pip3 install simpleaudio`  
 
 **Установка cobs (для декодирования сообщений):**  
-`$ sudo pip3 install cobs`  
-
-**Установка RPi.GPIO (для работы с gpio на raspberry pi)**  
-Для ubuntu:  
-`$ sudo pip3 install RPi.GPIO`  
-Для raspbian также, или:  
-`$ sudo apt install python3-rpi.gpio`  
-
-**Установка cairo (для отрисовки графики):**  
-`$ sudo apt install python3-cairo python3-gi-cairo`  
+`sudo pip3 install cobs` 
 
 **Установка шрифтов:**  
 1. Скопировать новый шрифт в формате *.ttf или *.otf в папку `/usr/local/share/fonts`  
@@ -34,7 +40,7 @@
 
 
 **Добавление программы с GUI в автозапуск** ([подробнее](http://www.raspberry-projects.com/pi/pi-operating-systems/raspbian/auto-running-programs-gui))  
-1. `$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`
+1. `sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`
 2. Добавить в конец строчку с путем к файлу, например:  
 `@/home/pi/CupTimer/TimerCup.py`  
 
@@ -48,7 +54,7 @@
 Файлы можно не удалять, а закоментировать часть отвечающую за вывод)  
 
 **Чтобы отключить выключение экрана с течением времени:**  
-1. `$ sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`  
+1. `sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`  
 2. Добавить строчки  
 `
 @xset s noblank  
