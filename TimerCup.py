@@ -26,8 +26,7 @@ except RuntimeError:
     gpio = False
 
 # TODO: Добавить режим работы в котором оно будет работать бесконечно. (Отборочный тур. Подготовка. Отборочный тур. Попытка)
-# TODO: Продумать возможность добавления новых режимов работы без влезания в код (или максимально все упростить)
-# TODO: Переделать режимы в словарь или список (совместить с предудщим пунктом)
+# TODO: Максимально упростить добавление новых режимов
 
 ############
 '''
@@ -60,35 +59,23 @@ Start начинается обратный отсчет до нуля. Повт
 второй - время попытки. Время указывается как [минуты, секунды].
 '''
 ############
-# mods = {"Перерыв":              [[10, 0], ],  # особый режим где нужен всего 1 таймер
-#         "Искатель 2.0":         [[3, 0], [10, 0]],
-#         "Экстремал 1.0":        [[7, 0], [10, 0]],
-#         "Экстремал Pro 1.0":    [[7, 0], [10, 0]],
-#         "Искатель Мини 2.0":    [[3, 0], [5, 0]],
-#         "Агро-I":               [[3, 0], [8, 0]]
-#        }
-# names = list(mods.keys())
-# names.sort()
+modsDict = {"Перерыв":              [[10, 0], ],  # особый режим где нужен всего 1 таймер
+            "Искатель 2.0":         [[3, 0], [10, 0]],
+            "Экстремал 1.0":        [[7, 0], [10, 0]],
+            "Экстремал Pro 1.0":    [[7, 0], [10, 0]],
+            "Искатель Мини 2.0":    [[3, 0], [5, 0]],
+            "Агро-I":               [[3, 0], [8, 0]],
+            "Отборочный тур":       [[5, 0], [5, 0]]  # этот режим работы должен крутиться до бесконечности
+            }
+modsNames = list(modsDict.keys())
+modsNames.sort()    # если не сортировать, этот список будет формироваться случайно до версии питона 3.7
 
-# режимы таймера (нужны только чтобы писать корректный текст)
-pause = 0           # перерыв
-finder = 1          # искатель
-extremal = 2        # экстремал
-extremalPro = 3     # экстремал про
-finderMini = 4      # искатель мини
-agro = 5            # кубок РТК - Агро
-# режим по умолчанию
-mode = pause
+# режим по умолчанию (в данном случае 0 - первый режим по алфавиту)
+currentMode = 0
 
-textPause = "Перерыв"
-textFinder = "Искатель 2.0"
-textFinderMini = "Искатель Мини 2.0"
-textExtremal = "Экстремал 1.0"
-textExtremalPro = "Экстремал Pro 1.0"
-textAgro = "Агро-I"
-textPreparing = "Подготовка"
+textAttempt = "Попытка"         # на отборочный тур надо дописывать "Попытка"
+textPreparing = "Подготовка"    # для всех режимов время подготовки
 textAttemptEnd = "Попытка закончена"
-
 textAdditional = "Пауза"    # когда таймер ставим на паузу с кнопки - пишем об этом
 
 pattern = '{0:02d}:{1:02d}'     # формат вывода строки
@@ -102,8 +89,9 @@ eventAirHorn = threading.Event()
 
 pauseButtonToggled = False     # флаг, что нажали на кнопку Pause
 
+
 class MainWindow(Gtk.Window):   # класс основного окна с тремя таймерами
-    global mode, pause, finder, extremal
+    global currentMode, pause, finder, extremal
 
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
@@ -178,7 +166,7 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         cr.paint()  # заливаем фон
         self._currentTime = mainTimer.currentTime
         # выставляем параметры шрифта
-        if mainTimer.finalCountdown is True and not mode == pause and mainTimer.GetTimerListLen() == 1:   # если тикают последние 10 секунд главного таймера
+        if mainTimer.finalCountdown is True and not modsNames[currentMode] == "Перерыв" and mainTimer.GetTimerListLen() == 1:   # если тикают последние 10 секунд главного таймера
             # если дотикал до конца таймер попытки - выводим соответствующий текст
             if self._currentTime[0] == 0 and self._currentTime[1] == 0 and mainTimer.GetTimerListLen() == 1:
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
@@ -192,23 +180,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
         else:   # если не идет обратный отсчет последних 5 секунд
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-            if mode == finder:  # если режим ИСКАТЕЛЬ
-                self.draw_text(textFinder, textHeight, self._width/2, textPos, cr)
 
-            elif mode == extremal:    # если режим ЭКСТРЕМАЛ
-                self.draw_text(textExtremal, textHeight, self._width/2, textPos, cr)
-
-            elif mode == extremalPro:  # если режим ЭКСТРЕМАЛ Про
-                self.draw_text(textExtremalPro, textHeight, self._width/2, textPos, cr)
-
-            elif mode == pause:    # если Перерыв
-                self.draw_text(textPause, textHeight, self._width/2, textPos, cr)
-
-            elif mode == finderMini:  # если режим ИСКАТЕЛЬ МИНИ
-                self.draw_text(textFinderMini, textHeight, self._width/2, textPos, cr)
-
-            elif mode == agro:    # если режим АГРО
-                self.draw_text(textAgro, textHeight, self._width/2, textPos, cr)
+            self.draw_text(modsNames[currentMode], textHeight, self._width/2, textPos, cr)  # пишем имя текущего режима
 
             if mainTimer.GetTimerListLen() > 1:     # если есть еще доп таймеры в списке - добавляем фразу "подготовка"
                 self.draw_text(textPreparing, self._lineHeight/2, self._width/2, self._lineHeight, cr)
@@ -531,55 +504,23 @@ class TimerHandler:
 
     @staticmethod
     def next_mode():   # выбор режима работы
-        global  mode, pauseButtonToggled
+        global  currentMode, pauseButtonToggled
         if mainTimer.GetIsPaused():     # менять режим работы можно только если отсчет не идет
             pauseButtonToggled = False
-            mode += 1   # выбираем следующий режим
-            if mode == finder:  # если он стал искатель
-                print("Finder")
-                mainTimer.SetTimerList([[3, 0], [10, 0]])   # ставим таймеры - три минуты на подготовку, 10 на попытку
-            elif mode == extremal:     # если стал экстремал
-                print("Extremal")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == extremalPro:  # если стал экстремал про
-                print("Extremal Pro")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])   # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == finderMini:    # если стал искатель мини
-                print("Finder Mini")
-                mainTimer.SetTimerList([[3, 0],[5, 0]])     # ставим таймеры - 3 минуты на подготовку, 5 на попытку
-            elif mode == agro:  # если стал агро
-                print("Agro")
-                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
-            elif mode > 5:
-                print("Countdown")  # если просто обратный отсчет
-                mode = 0    # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 5 - 0
-                mainTimer.SetTimerList([[10, 0], ])     # по умолчанию это один таймер на 10 минут и все
+            currentMode += 1   # выбираем следующий режим
+            if currentMode > len(modsDict) - 1:
+                currentMode = 0
+            mainTimer.SetTimerList(modsDict[modsNames[currentMode]])
 
     @staticmethod
     def prev_mode():
-        global mode, pauseButtonToggled
-        if mainTimer.GetIsPaused():  # менять режим работы можно только если отсчет не идет
+        global currentMode, pauseButtonToggled
+        if mainTimer.GetIsPaused():     # менять режим работы можно только если отсчет не идет
             pauseButtonToggled = False
-            mode -= 1  # выбираем следующий режим
-            if mode == finder:  # если он стал искатель
-                print("Finder")
-                mainTimer.SetTimerList([[3, 0], [10, 0]])  # ставим таймеры - три минуты на подготовку, 10 на попытку
-            elif mode == extremal:  # если стал экстремал
-                print("Extremal")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == extremalPro:  # если стал экстремал про
-                print("Extremal Pro")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == finderMini:  # если стал искатель мини
-                print("Finder Mini")
-                mainTimer.SetTimerList([[3, 0], [5, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
-            elif mode == agro:  # если стал агро
-                print("Agro")
-                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
-            elif mode < 0:
-                print("Countdown")  # если просто обратный отсчет
-                mode = 5  # mode изменяется в цикле 0 - 1 - 2 - 3 - 4 - 5 - 0
-                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 8 на попытку
+            currentMode -= 1   # выбираем следующий режим
+            if currentMode < 0:
+                currentMode = len(modsDict) - 1
+            mainTimer.SetTimerList(modsDict[modsNames[currentMode]])
 
     @staticmethod
     def pause():    # установка таймера на паузу
@@ -594,28 +535,12 @@ class TimerHandler:
         global pauseButtonToggled
         if mainTimer.GetIsPaused():  # сброс доступен только если таймер не считает
             pauseButtonToggled = False
-            if mode == pause:  # смотрим какой стоял режим работы и ставим его параметры по умолчанию
-                print("Reset pause")
-                mainTimer.SetTimerList([[10, 0], ])  # по умолчанию это один таймер на 10 минут и все
-            elif mode == finder:
-                print("Reset finder")
-                mainTimer.SetTimerList([[3, 0], [10, 0]])  # ставим таймеры - три минуты на подготовку, 10 на попытку
-            elif mode == extremal:
-                print("Reset extremal")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == extremalPro:
-                print("Reset extremal pro")
-                mainTimer.SetTimerList([[7, 0], [10, 0]])  # ставим таймеры - 7 минут на подготовку, 10 на попытку
-            elif mode == finderMini:
-                print("Reset finder mini")
-                mainTimer.SetTimerList([[3, 0], [5, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
-            elif mode == agro:
-                print("Reset finder mini")
-                mainTimer.SetTimerList([[3, 0], [8, 0]])  # ставим таймеры - 3 минуты на подготовку, 5 на попытку
+            mainTimer.SetTimerList(modsDict[modsNames[currentMode]])
+
 
     @staticmethod
     def add_minute():   # добавить минуту (только в режиме перерыва и когда таймер на паузе)
-        if mode == pause and mainTimer.GetIsPaused():
+        if modsNames[currentMode] == "Перерыв" and mainTimer.GetIsPaused():
             min = mainTimer.GetCurrentMin()
             min += 1
             if min > 99:
@@ -624,7 +549,7 @@ class TimerHandler:
 
     @staticmethod
     def reduce_minute():   # убрать минуту (только в режиме перерыва и когда таймер на паузе)
-        if mode == pause and mainTimer.GetIsPaused():
+        if modsNames[currentMode] == "Перерыв" and mainTimer.GetIsPaused():
             min = mainTimer.GetCurrentMin()
             min -= 1
             if min < 1:
@@ -642,7 +567,7 @@ class TimerHandler:
 
 
 class GpioHandler(threading.Thread):    # класс отслеживающий состояние GPIO
-    global mode, pause, finder, extremal, pauseButtonToggled
+    global currentMode, pause, finder, extremal, pauseButtonToggled
 
     def __init__(self):
         # задаем номера gpio для кнопок
@@ -715,7 +640,7 @@ class EncoderCounter(threading.Thread):
             self.encA = GPIO.input(self.GpioEncA)   # считываем новые состояния
             self.encB = GPIO.input(self.GpioEncB)
             # изменяем что-то, только если таймер не запущен и в нужном режиме
-            if mode == pause and mainTimer.GetIsPaused():
+            if currentMode == pause and mainTimer.GetIsPaused():
                 if self.encA != self.encAprev:  # если изменилось состояние на первом канале
                     if self.encB != self.encA:  # и оно не совпадает со второым каналом
                         TimerHandler.add_minute()
@@ -738,7 +663,7 @@ if keys:    # если есть библиотека для работы с кл
     class EscException(Exception): pass     # исключение по которому будем закрывать программу
 
     def on_release(key):
-        global mode, pause, finder, pauseButtonToggled
+        global currentMode, pause, finder, pauseButtonToggled
         try:
             if key.char == 'p' or key.char == 'P' or key.char == 'з' or key.char == 'З':  # клавиша P - пауза таймера
                 TimerHandler.pause()
@@ -807,7 +732,7 @@ mainWindow = MainWindow()   # создаем объект класса глав�
 gtkRunner = GtkRunner()     # объект для запуска GTK в отдельном потоке
 
 # создаем таймеры, минуты, секунды, какой таймер
-mainTimer = TimerClass([[10, 0], ], 'main')   # тут главный
+mainTimer = TimerClass(modsDict[modsNames[currentMode]], 'main')   # тут главный
 
 # player = PlayMusic()    # создаем объект класса проигрывания музыки
 # pult = PultHandler()    # создаем обработчик пульта

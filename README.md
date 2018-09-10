@@ -9,7 +9,7 @@
 - GPIO27 - Канал энкодера А  
 - GPIO22 - Канал энкодера B  
 
-###Обязательные модули
+###Обязательные модули  
 **Установка RPi.GPIO (для работы с gpio на raspberry pi)**  
 Для ubuntu:  
 `sudo pip3 install RPi.GPIO`  
