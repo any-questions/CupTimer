@@ -8,6 +8,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Pango, GLib, Gdk
 # import serial       # для uart
 # import simpleaudio as sa  # для аудио (оставлено на будущее)
+from pydub import AudioSegment
+from pydub.playback import play
 # import cobs         # для декодирования сообщений из uart (оставлено на будущее)
 
 try:
@@ -25,7 +27,7 @@ except RuntimeError:
     print("Error importing RPi.GPIO!")
     gpio = False
 
-# TODO: Добавить режим работы в котором оно будет работать бесконечно. (Отборочный тур. Подготовка. Отборочный тур. Попытка)
+# TODO: Придумать рабочий способ воспроизведения звука на Raspberry
 # TODO: Максимально упростить добавление новых режимов
 
 ############
@@ -45,13 +47,24 @@ except RuntimeError:
 Повторное нажатие на кнопку Start до окончания времени на подготовку сразу запускает попытку.
 Следующее нажатие на кнопку Start до окончании времени завершает попытку.
 
-В режиме ОБРАТНОГО ОТСЧЕТА время задается при помощи поворотной ручки с шагом в минуту, после чего при нажати на кнопку
+В режиме ПЕРЕРЫВ время задается при помощи поворотной ручки с шагом в минуту, после чего при нажати на кнопку
 Start начинается обратный отсчет до нуля. Повторное нажатие на кнопку Start досрочно останавливает таймер.
+
+В режиме ОТБОРОЧНЫЙ ТУР таймер может работать до бесконечности - сначала время подготовки, потом время на попытку.
 
 Изменение режима работы таймера, сброс таймера, а также выключение доступны только если обратный отсчет не идет, т.е.
 во время обратного отсчета (любого) кнопки Select, Reset, Shutdown неактивны.
 '''
 ############
+'''
+Допустимо управление таймером с клавиатуры:
+Space = Start
+Backspace = Reset
+P (английская P, русская З) =  Pause
+стрелки влево-вправо = Select
+стрелки вверх-вниз = установка времени для режима работы ПЕРЕРЫВ
+Esc = закрытие программы
+'''
 ############
 '''
 Словарь с режимами работы таймера. 
@@ -65,13 +78,16 @@ modsDict = {"Перерыв":              [[10, 0], ],  # особый режи
             "Экстремал Pro 1.0":    [[7, 0], [10, 0]],
             "Искатель Мини 2.0":    [[3, 0], [5, 0]],
             "Агро-I":               [[3, 0], [8, 0]],
-            "Отборочный тур":       [[5, 0], [5, 0]]  # этот режим работы должен крутиться до бесконечности
+            "Отборочный тур":       [[0, 20], [0, 20]]  # этот режим работы должен крутиться до бесконечности
             }
+
+
+infinite = ["Отборочный тур"]   # список режимов которые должны крутиться до бесконечности
 modsNames = list(modsDict.keys())
 modsNames.sort()    # если не сортировать, этот список будет формироваться случайно до версии питона 3.7
 
 # режим по умолчанию (в данном случае 0 - первый режим по алфавиту)
-currentMode = 0
+currentMode = 3
 
 textAttempt = "Попытка"         # на отборочный тур надо дописывать "Попытка"
 textPreparing = "Подготовка"    # для всех режимов время подготовки
@@ -86,6 +102,8 @@ eventGong1 = threading.Event()
 eventGong2 = threading.Event()
 eventGongLaugh = threading.Event()
 eventAirHorn = threading.Event()
+eventAttemptStart = threading.Event()
+eventAttemptEnd = threading.Event()
 
 pauseButtonToggled = False     # флаг, что нажали на кнопку Pause
 
@@ -164,20 +182,23 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
 
         cr.set_source_rgb(0, 0, 0)    # фон красим в черный
         cr.paint()  # заливаем фон
-        self._currentTime = mainTimer.currentTime
+        self._currentTime = mainTimer.GetCurrentTime()
+
         # выставляем параметры шрифта
-        if mainTimer.finalCountdown is True and not modsNames[currentMode] == "Перерыв" and mainTimer.GetTimerListLen() == 1:   # если тикают последние 10 секунд главного таймера
-            # если дотикал до конца таймер попытки - выводим соответствующий текст
-            if self._currentTime[0] == 0 and self._currentTime[1] == 0 and mainTimer.GetTimerListLen() == 1:
+        # если тикают последние 10 секунд главного таймера (причем этот таймер последний)
+        # не касается режимов Перерыв и бесконечных
+        if mainTimer.finalCountdown is True and mainTimer.GetTimerListLen() == 1 \
+                and not modsNames[currentMode] == "Перерыв" and not modsNames[currentMode] in infinite:
+            # если дотикал до конца таймер попытки - выводим соответствующий текст "Попытка закончена"
+            if self._currentTime[0] == 0 and self._currentTime[1] == 0:
                 time.sleep(0.5)     # ждем чуть чуть чтобы ноль явно повисел
                 cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
                 self.draw_text(textAttemptEnd, self._lineHeight, self._width/2, self._height/2, cr)
-            else:
+            else:   # если нет - выводим большие красные цифры последних секунд отсчета
                 cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
                 self.draw_text(mainTimer.GetTimer(), self._lineHeight*4, self._width/2, self._height/2, cr, (1, 0, 0))
 
-
-        else:   # если не идет обратный отсчет последних 5 секунд
+        else:   # если не идет обратный отсчет последних секунд
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 
@@ -185,9 +206,11 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
 
             if mainTimer.GetTimerListLen() > 1:     # если есть еще доп таймеры в списке - добавляем фразу "подготовка"
                 self.draw_text(textPreparing, self._lineHeight/2, self._width/2, self._lineHeight, cr)
+            elif modsNames[currentMode] in infinite:    # для бесконечных режимов пишем также фразу "попытка"
+                self.draw_text(textAttempt, self._lineHeight/2, self._width/2, self._lineHeight, cr)
 
             cr.select_font_face("Digital Dismay", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-            # вывод главного таймера, если осталось 10 сек - рисуется красным
+            # вывод главного таймера, если осталось 10 сек - рисуется красным(только для реджимов перерыв и бесконечных)
             if mainTimer.finalCountdown is True:
                 self.draw_text(mainTimer.GetTimer(), self._lineHeight*3, self._width/2, self._lineHeight*2.5, cr,(1,0,0))
             else:
@@ -213,11 +236,12 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
 
 
 class TimerClass(threading.Thread):
-    global eventHighBeep, eventAirHorn, eventLowBeep, eventLongBeep, eventShortBeep
-
+    # global eventHighBeep, eventAirHorn, eventLowBeep, eventLongBeep, eventShortBeep
+    global eventAttemptStart, eventAttemptEnd
     def __init__(self, timerList, timer):
-        self.timerList = timerList  # список таймеров
-        self.currentTime = [self.timerList[0][0], self.timerList[0][1]]     # записываем время: мин, сек
+        self.timerList = []  # список таймеров
+        self.currentTime = [0, 0]     # записываем время: мин, сек
+        self.SetTimerList(timerList)    # записываем список таймеров и текущее время
         self.timeString = pattern.format(self.currentTime[0], self.currentTime[1])  # записываем время в паттерн
         self.timer = timer  # тип таймера
         self.isRunning = False  # флаг, чтобы тред работал
@@ -241,16 +265,24 @@ class TimerClass(threading.Thread):
                         self.currentTime[0] = 0
 
                 if self.currentTime[0] == 0 and self.currentTime[1] == 0:   # если дотикали до нуля
-                    if self.timer == 'main':    # если остановился главный таймер
-                        eventGong2.set()  # пищим одним тоном
-
                     if len(self.timerList) > 1:     # если еще остались таймеры, которые нужно дотикать
                         self.timerList.pop(0)       # убираем из списка тот, который кончился
                         self.finalCountdown = False
                         # записываем время нового таймера: мин, сек
                         self.currentTime = [self.timerList[0][0], self.timerList[0][1]]
                     else:
-                        self.isPaused = True    # если это был последний таймер - останавливаем отсчет
+                        if self.timer == 'main' and modsNames[currentMode] in infinite:     # если таймеру надо крутиться до бесконечности
+                            self.SetTimerList(modsDict[modsNames[currentMode]])   # обновляем список таймеров
+                            self.Resume()   # и сразу запускаем таймер дальше
+                        else:
+                            self.isPaused = True    # если это был последний таймер - останавливаем отсчет
+                    if self.timer == 'main' and modsNames[currentMode] in infinite:
+                        if len(self.timerList) > 1:
+                            print("Prepare!")
+                            eventAttemptEnd.set()
+                        else:
+                            print("Attempt!")
+                            eventAttemptStart.set()
 
                 elif self.currentTime[0] == 0 and self.currentTime[1] <= 10:  # если осталось тикать 10 секунд
                     self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
@@ -263,7 +295,7 @@ class TimerClass(threading.Thread):
 
     def SetTimerList(self, timerList):   # функция задания нового списка таймеров
         self.isPaused = True    # на всякий случай ставим на паузу
-        self.timerList = timerList
+        self.timerList = timerList.copy()
         self.currentTime = [self.timerList[0][0], self.timerList[0][1]]
         self.finalCountdown = False
 
@@ -285,7 +317,6 @@ class TimerClass(threading.Thread):
             self.isPaused = False
 
     def Exit(self):     # завершить тред
-        # print("Stopping",self.timer,"timer...")
         self.isRunning = False
 
     def GetCurrentTime(self):   # возвращает время которое осталось дотикать
@@ -323,20 +354,24 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
             print("Path to audio: sounds/*.wav")
-            self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
-            self.beep = sa.WaveObject.from_wave_file("sounds/beep.wav")
-            self.bleep = sa.WaveObject.from_wave_file("sounds/bleep.wav")
-            self.gong1 = sa.WaveObject.from_wave_file("sounds/gong1.wav")
-            self.gong2 = sa.WaveObject.from_wave_file("sounds/gong2.wav")
-            self.gongLaugh = sa.WaveObject.from_wave_file("sounds/gongLaugh.wav")
+            # self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
+            # self.beep = sa.WaveObject.from_wave_file("sounds/beep.wav")
+            # self.bleep = sa.WaveObject.from_wave_file("sounds/bleep.wav")
+            # self.gong1 = sa.WaveObject.from_wave_file("sounds/gong1.wav")
+            # self.gong2 = sa.WaveObject.from_wave_file("sounds/gong2.wav")
+            # self.gongLaugh = sa.WaveObject.from_wave_file("sounds/gongLaugh.wav")
+            self.attemptStart = AudioSegment.from_mp3("sounds/attempt_start.mp3")
+            self.attemptEnd = AudioSegment.from_mp3("sounds/attempt_end.mp3")
         else:
             print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
-            self.horn = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/airhorn.wav")
-            self.beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/beep.wav")
-            self.bleep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/bleep.wav")
-            self.gong1 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong1.wav")
-            self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
-            self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
+            # self.horn = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/airhorn.wav")
+            # self.beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/beep.wav")
+            # self.bleep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/bleep.wav")
+            # self.gong1 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong1.wav")
+            # self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
+            # self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
+            self.attemptStart = AudioSegment.from_mp3(dirpath+"sounds/attempt_start.mp3")
+            self.attemptEnd = AudioSegment.from_mp3(dirpath+"sounds/attempt_end.mp3")
         self.isRunning = False
         threading.Thread.__init__(self, daemon=True)     # наследование функций треда
         print("Audio player is created")
@@ -350,31 +385,34 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
 
     def Handler(self):  # обработчик событий
         while self.isRunning is True:   # работает пока поднят флаг
-            if eventAirHorn.isSet():      # стартовый горн
-                eventAirHorn.clear()
-                # os.system(self.horn)
-                self.horn.play()
-                # self.horn.export(format='wav')
-            elif eventBeep.isSet():
-                eventBeep.clear()
-                self.beep.play()
-
-            elif eventBleep.isSet():
-                eventBleep.clear()
-                self.bleep.play()
-
-            elif eventGong1.isSet():
-                eventGong1.clear()
-                self.gong1.play()
-
-            elif eventGong2.isSet():
-                eventGong2.clear()
-                self.gong2.play()
-
-            elif eventGongLaugh.isSet():
-                eventGongLaugh.clear()
-                self.gongLaugh.play()
-
+            # if eventAirHorn.isSet():      # стартовый горн
+            #     eventAirHorn.clear()
+            #     self.horn.play()
+            # elif eventBeep.isSet():
+            #     eventBeep.clear()
+            #     self.beep.play()
+            #
+            # elif eventBleep.isSet():
+            #     eventBleep.clear()
+            #     self.bleep.play()
+            #
+            # elif eventGong1.isSet():
+            #     eventGong1.clear()
+            #     self.gong1.play()
+            #
+            # elif eventGong2.isSet():
+            #     eventGong2.clear()
+            #     self.gong2.play()
+            #
+            # elif eventGongLaugh.isSet():
+            #     eventGongLaugh.clear()
+            #     self.gongLaugh.play()
+            if eventAttemptStart.is_set():
+                eventAttemptStart.clear()
+                play(self.attemptStart)
+            elif eventAttemptEnd.is_set():
+                eventAttemptEnd.clear()
+                play(self.attemptEnd)
             time.sleep(0.001)
         print("Audio player stopped")
 
@@ -640,7 +678,7 @@ class EncoderCounter(threading.Thread):
             self.encA = GPIO.input(self.GpioEncA)   # считываем новые состояния
             self.encB = GPIO.input(self.GpioEncB)
             # изменяем что-то, только если таймер не запущен и в нужном режиме
-            if currentMode == pause and mainTimer.GetIsPaused():
+            if  modsNames[currentMode] == "Перерыв" and mainTimer.GetIsPaused():
                 if self.encA != self.encAprev:  # если изменилось состояние на первом канале
                     if self.encB != self.encA:  # и оно не совпадает со второым каналом
                         TimerHandler.add_minute()
@@ -734,7 +772,7 @@ gtkRunner = GtkRunner()     # объект для запуска GTK в отде
 # создаем таймеры, минуты, секунды, какой таймер
 mainTimer = TimerClass(modsDict[modsNames[currentMode]], 'main')   # тут главный
 
-# player = PlayMusic()    # создаем объект класса проигрывания музыки
+player = PlayMusic()    # создаем объект класса проигрывания музыки
 # pult = PultHandler()    # создаем обработчик пульта
 
 if gpio:    # если есть GPIO
@@ -744,7 +782,7 @@ if gpio:    # если есть GPIO
 
 gtkRunner.start()   # запускаем GTK
 mainTimer.start()   # запускаем таймеры
-# player.start()  # запускаем проигрыватель музыки
+player.start()  # запускаем проигрыватель музыки
 # pult.start()    # запускаем обработчик пульта
 
 # gtkRunner.join()    # цепляем треды к основному потоку
