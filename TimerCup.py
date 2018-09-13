@@ -4,12 +4,10 @@ import threading    # для тредов
 import gi           # для gui
 import cairo        # для визуальных эффектов
 import os           # чтобы иметь возможность слать команды os
+import simpleaudio as sa  # для аудио
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Pango, GLib, Gdk
-# import serial       # для uart
-# import simpleaudio as sa  # для аудио (оставлено на будущее)
-from pydub import AudioSegment
-from pydub.playback import play
+# import serial       # для uart (оставлено на будущее)
 # import cobs         # для декодирования сообщений из uart (оставлено на будущее)
 
 try:
@@ -27,7 +25,7 @@ except RuntimeError:
     print("Error importing RPi.GPIO!")
     gpio = False
 
-# TODO: Придумать рабочий способ воспроизведения звука на Raspberry
+# TODO: Протестировать воспроизведение звука на телевизоре
 # TODO: Максимально упростить добавление новых режимов
 
 ############
@@ -79,7 +77,7 @@ modsDict = {"Перерыв":              [[10, 0], ],  # особый режи
             "Искатель Мини 2.0":    [[3, 0], [5, 0]],
             "Агро-I":               [[3, 0], [8, 0]],
             "Отборочный тур":       [[0, 20], [0, 20]]  # этот режим работы должен крутиться до бесконечности
-            }
+            }   # TODO: не забыть поменять время для отборочного тура
 
 
 infinite = ["Отборочный тур"]   # список режимов которые должны крутиться до бесконечности
@@ -114,14 +112,14 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        self.set_size_request(800,600)
+        self.set_size_request(800, 600)
         # self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
         self._drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self._drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
         self.add(self._drawArea)     # добавляем drawing area в окно приложения
         self._isRunning = True   # флаг что программа работает
-        GLib.timeout_add(100, self.on_timer)    # таймер по которому каждые 100 мс будем перерисовывать содержимое
+        GLib.timeout_add(200, self.on_timer)    # таймер по которому каждые 200 мс будем перерисовывать содержимое
         self.show_all()     # отображаем окно
         cursor = Gdk.Cursor.new(Gdk.CursorType.BLANK_CURSOR)    # скрываем курсор
         self.get_window().set_cursor(cursor)
@@ -348,9 +346,7 @@ class TimerClass(threading.Thread):
 class PlayMusic(threading.Thread):  # класс для воспроизведения мелодий
     def __init__(self):
         dirpath = os.getcwd()   # получаем расположение текущей папки
-        print("Сurrent directory is:", dirpath)
         foldername = os.path.basename(dirpath)  # получаем имя текущей папки
-        print("Сurrent folder is:", foldername)
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
             print("Path to audio: sounds/*.wav")
@@ -360,8 +356,10 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             # self.gong1 = sa.WaveObject.from_wave_file("sounds/gong1.wav")
             # self.gong2 = sa.WaveObject.from_wave_file("sounds/gong2.wav")
             # self.gongLaugh = sa.WaveObject.from_wave_file("sounds/gongLaugh.wav")
-            self.attemptStart = AudioSegment.from_mp3("sounds/attempt_start.mp3")
-            self.attemptEnd = AudioSegment.from_mp3("sounds/attempt_end.mp3")
+            # self.attemptStart = AudioSegment.from_mp3("sounds/attempt_start.mp3")
+            # self.attemptEnd = AudioSegment.from_mp3("sounds/attempt_end.mp3")
+            self.attemptStart = sa.WaveObject.from_wave_file("sounds/attempt_start.wav")
+            self.attemptEnd = sa.WaveObject.from_wave_file("sounds/attempt_end.wav")
         else:
             print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
             # self.horn = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/airhorn.wav")
@@ -370,8 +368,10 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             # self.gong1 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong1.wav")
             # self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
             # self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
-            self.attemptStart = AudioSegment.from_mp3(dirpath+"sounds/attempt_start.mp3")
-            self.attemptEnd = AudioSegment.from_mp3(dirpath+"sounds/attempt_end.mp3")
+            # self.attemptStart = AudioSegment.from_mp3(dirpath + "/CupTimer/sounds/attempt_start.mp3")
+            # self.attemptEnd = AudioSegment.from_mp3(dirpath + "/CupTimer/sounds/attempt_end.mp3")
+            self.attemptStart = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/attempt_start.wav")
+            self.attemptEnd = sa.WaveObject.from_wave_file(dirpath + "/CupTimer/sounds/attempt_end.wav")
         self.isRunning = False
         threading.Thread.__init__(self, daemon=True)     # наследование функций треда
         print("Audio player is created")
@@ -409,10 +409,12 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
             #     self.gongLaugh.play()
             if eventAttemptStart.is_set():
                 eventAttemptStart.clear()
-                play(self.attemptStart)
+                # play(self.attemptStart)
+                self.attemptStart.play()
             elif eventAttemptEnd.is_set():
                 eventAttemptEnd.clear()
-                play(self.attemptEnd)
+                self.attemptEnd.play()
+                # play(self.attemptEnd)
             time.sleep(0.001)
         print("Audio player stopped")
 

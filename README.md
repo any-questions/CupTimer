@@ -56,11 +56,9 @@
 **Чтобы отключить выключение экрана с течением времени:**  
 1. `sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart`  
 2. Добавить строчки  
-`
-@xset s noblank  
-@xset s off  
-@xset -dpms  
-`
+`@xset s noblank`  
+`@xset s off`  
+`@xset -dpms`  
 
 **Чтобы настроить HDMI выход** ([подробнее](http://wikihandbk.com/wiki/Raspberry_Pi:%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0/config.txt#HDMI_DRIVE))  
 1. `sudo nano /boot/config.txt`  
@@ -68,7 +66,7 @@
 `hdmi_force_hotplug=1` - видео будет отправляться в HDMI, даже если монитор еще не подключен  
 `hdmi_drive=2` - звук также отправляется в HDMI  
 `hdmi_group=1` - подключаемся к телевизору (0 - автоопределение, 2 - к монитору)  
-`hdmi_mode=4` - 720p 60 fps  
+`hdmi_mode=3` - 480p 60 fps  
 
 **Чтобы отключить черную рамку по краям экрана**  
 1. `sudo nano /boot/config.txt`  
