@@ -25,7 +25,6 @@ except RuntimeError:
     print("Error importing RPi.GPIO!")
     gpio = False
 
-# TODO: Протестировать воспроизведение звука на телевизоре
 # TODO: Максимально упростить добавление новых режимов
 
 ############
@@ -112,8 +111,8 @@ class MainWindow(Gtk.Window):   # класс основного окна с тр
     def __init__(self):
         super(MainWindow, self).__init__()  # переопределяем init
         self.set_title("Timer")     # заголовок окна
-        self.set_size_request(800, 600)
-        # self.fullscreen()   # растягиваем на весь экран
+        # self.set_size_request(800, 600)
+        self.fullscreen()   # растягиваем на весь экран
         self.connect("destroy", CloseProgram)    # связываем закрытие окна с функцией заверщеия программы
         self._drawArea = Gtk.DrawingArea()   # создаем drawing area на которой будем рисовать приложение
         self._drawArea.connect("draw", self.expose)   # связываем событие с функцией перерисовки содержимого
@@ -350,26 +349,10 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
             print("Path to audio: sounds/*.wav")
-            # self.horn = sa.WaveObject.from_wave_file("sounds/airhorn.wav")
-            # self.beep = sa.WaveObject.from_wave_file("sounds/beep.wav")
-            # self.bleep = sa.WaveObject.from_wave_file("sounds/bleep.wav")
-            # self.gong1 = sa.WaveObject.from_wave_file("sounds/gong1.wav")
-            # self.gong2 = sa.WaveObject.from_wave_file("sounds/gong2.wav")
-            # self.gongLaugh = sa.WaveObject.from_wave_file("sounds/gongLaugh.wav")
-            # self.attemptStart = AudioSegment.from_mp3("sounds/attempt_start.mp3")
-            # self.attemptEnd = AudioSegment.from_mp3("sounds/attempt_end.mp3")
             self.attemptStart = sa.WaveObject.from_wave_file("sounds/attempt_start.wav")
             self.attemptEnd = sa.WaveObject.from_wave_file("sounds/attempt_end.wav")
         else:
             print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
-            # self.horn = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/airhorn.wav")
-            # self.beep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/beep.wav")
-            # self.bleep = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/bleep.wav")
-            # self.gong1 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong1.wav")
-            # self.gong2 = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gong2.wav")
-            # self.gongLaugh = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/gongLaugh.wav")
-            # self.attemptStart = AudioSegment.from_mp3(dirpath + "/CupTimer/sounds/attempt_start.mp3")
-            # self.attemptEnd = AudioSegment.from_mp3(dirpath + "/CupTimer/sounds/attempt_end.mp3")
             self.attemptStart = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/attempt_start.wav")
             self.attemptEnd = sa.WaveObject.from_wave_file(dirpath + "/CupTimer/sounds/attempt_end.wav")
         self.isRunning = False
@@ -385,36 +368,13 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
 
     def Handler(self):  # обработчик событий
         while self.isRunning is True:   # работает пока поднят флаг
-            # if eventAirHorn.isSet():      # стартовый горн
-            #     eventAirHorn.clear()
-            #     self.horn.play()
-            # elif eventBeep.isSet():
-            #     eventBeep.clear()
-            #     self.beep.play()
-            #
-            # elif eventBleep.isSet():
-            #     eventBleep.clear()
-            #     self.bleep.play()
-            #
-            # elif eventGong1.isSet():
-            #     eventGong1.clear()
-            #     self.gong1.play()
-            #
-            # elif eventGong2.isSet():
-            #     eventGong2.clear()
-            #     self.gong2.play()
-            #
-            # elif eventGongLaugh.isSet():
-            #     eventGongLaugh.clear()
-            #     self.gongLaugh.play()
             if eventAttemptStart.is_set():
                 eventAttemptStart.clear()
-                # play(self.attemptStart)
                 self.attemptStart.play()
+
             elif eventAttemptEnd.is_set():
                 eventAttemptEnd.clear()
                 self.attemptEnd.play()
-                # play(self.attemptEnd)
             time.sleep(0.001)
         print("Audio player stopped")
 
