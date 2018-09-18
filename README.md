@@ -19,6 +19,10 @@
 **Установка cairo (для отрисовки графики):**  
 `sudo apt install python3-cairo python3-gi-cairo`
 
+**Установка simpleaudio (для проигрывания звуков):**  
+1. `sudo apt install libasound2-dev`
+2. `sudo pip3 install simpleaudio`  
+
 **Установка pynput (для того чтобы слушать клавиатуру)**  
 `sudo pip3 install pynput` 
 
@@ -26,10 +30,6 @@
 ### Модули, которые возможно понадобятся в будущем
 **Установка serial (для отправки сообщений по uart)**  
 `sudo pip3 install serial`
-
-**Установка simpleaudio (для проигрывания звуков):**  
-1. `sudo apt install libasound2-dev`
-2. `sudo pip3 install simpleaudio`  
 
 **Установка cobs (для декодирования сообщений):**  
 `sudo pip3 install cobs` 
