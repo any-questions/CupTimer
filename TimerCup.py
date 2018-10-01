@@ -277,12 +277,22 @@ class TimerClass(threading.Thread):
                         if len(self.timerList) > 1:
                             print("Prepare!")
                             eventAttemptEnd.set()
-                        else:
-                            print("Attempt!")
-                            eventAttemptStart.set()
-
+                        # else:
+                        #     print("Attempt!")
+                        #     eventAttemptStart.set()
                 elif self.currentTime[0] == 0 and self.currentTime[1] <= 10:  # если осталось тикать 10 секунд
                     self.finalCountdown = True  # поднимаем флаг, чтобы окно перерисовывалось по другому
+                    ##########################
+                    '''
+                    КОСТЫЛЬ. ТАК ДЕЛАТЬ НЕ НАДО.
+                    '''
+                    ##########################
+                    if self.timer == 'main' and modsNames[currentMode] in infinite \
+                        and self.currentTime[1] == 4 and len(self.timerList) > 1:    # за 4 секунды до конца отсчета таймера на подготовку
+                        print("Attempt start!")
+                        eventAttemptStart.set()
+
+
                 time.sleep(1)   # останавливаем тред на секунду
         print(self.timer,"timer stopped")
 
@@ -349,12 +359,12 @@ class PlayMusic(threading.Thread):  # класс для воспроизведе
         # указываем пути к мелодиям, которые будем проигрывать
         if foldername == "CupTimer":
             print("Path to audio: sounds/*.wav")
-            self.attemptStart = sa.WaveObject.from_wave_file("sounds/attempt_start.wav")
-            self.attemptEnd = sa.WaveObject.from_wave_file("sounds/attempt_end.wav")
+            self.attemptStart = sa.WaveObject.from_wave_file("sounds/attempt_start_clear.wav")
+            self.attemptEnd = sa.WaveObject.from_wave_file("sounds/attempt_end_clear.wav")
         else:
             print("Path to audio:"+dirpath+"/CupTimer/sounds/*.wav")
-            self.attemptStart = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/attempt_start.wav")
-            self.attemptEnd = sa.WaveObject.from_wave_file(dirpath + "/CupTimer/sounds/attempt_end.wav")
+            self.attemptStart = sa.WaveObject.from_wave_file(dirpath+"/CupTimer/sounds/attempt_start_clear.wav")
+            self.attemptEnd = sa.WaveObject.from_wave_file(dirpath + "/CupTimer/sounds/attempt_end_clear.wav")
         self.isRunning = False
         threading.Thread.__init__(self, daemon=True)     # наследование функций треда
         print("Audio player is created")
