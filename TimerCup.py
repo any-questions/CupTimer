@@ -68,12 +68,12 @@ Esc = закрытие программы
 '''
 ############
 modsDict = {"Перерыв":              [[10, 0], ],        # особый режим где нужен всего 1 таймер
-            "Искатель 2.0":         [[3, 0], [10, 0]],
-            "Экстремал 1.0":        [[7, 0], [10, 0]],
-            "Экстремал Pro 1.0":    [[7, 0], [10, 0]],
-            "Искатель Мини 2.0":    [[3, 0], [5, 0]],
-            "Агро-I":               [[3, 0], [8, 0]],
-            "Отборочный тур":       [[5, 0], [5, 0]]    # этот режим работы должен крутиться до бесконечности
+            "Искатель":             [[3, 0], [10, 0]],
+            "Экстремал":            [[7, 0], [10, 0]],
+#            "Экстремал Pro 1.0":    [[7, 0], [10, 0]],
+            "Искатель Мини":        [[3, 0], [5, 0]],
+#            "Агро-I":               [[3, 0], [8, 0]],
+#            "Отборочный тур":       [[5, 0], [5, 0]]    # этот режим работы должен крутиться до бесконечности
             }
 
 
@@ -88,6 +88,7 @@ textAttempt = "Попытка"         # на отборочный тур над
 textPreparing = "Подготовка"    # для всех режимов время подготовки
 textAttemptEnd = "Попытка закончена"
 textAdditional = "Пауза"    # когда таймер ставим на паузу с кнопки - пишем об этом
+textCup = "Кубок РТК" 
 
 pattern = '{0:02d}:{1:02d}'     # формат вывода строки
 
@@ -195,8 +196,8 @@ class MainWindow(Gtk.Window):
         else:   # если не идет обратный отсчет последних секунд
             # выставляем параметры шрифта
             cr.select_font_face("GOST type A", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-
             self.drawText(modsNames[currentMode], textHeight, self._width/2, textPos, cr)  # пишем имя текущего режима
+            self.drawText(textCup, textHeight*1.1, self._width/2, self._lineHeight * 4.2, cr)  # пишем имя текущего режима
 
             if mainTimer.getTimerListLen() > 1:     # если есть еще доп таймеры в списке - добавляем фразу "подготовка"
                 self.drawText(textPreparing, self._lineHeight/2, self._width/2, self._lineHeight, cr)
@@ -509,8 +510,8 @@ class TimerHandler:
         if modsNames[currentMode] == "Перерыв" and mainTimer.isPaused():
             minute = mainTimer.getCurrentMin()
             minute += 1
-            if minute > 99:
-                minute = 99
+            if minute > 180:
+                minute = 180
             mainTimer.setTimerList([[minute, 0], ])
 
     @staticmethod
